@@ -1,4 +1,4 @@
-﻿using LibKidsNoteNotifier;
+﻿using LibKidsNoteForEveryone;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,7 +11,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KidsNoteNotifierService
+namespace KidsNoteForEveryoneService
 {
     public enum ServiceState
     {
@@ -37,7 +37,7 @@ namespace KidsNoteNotifierService
     };
 
 
-    public partial class KidsNoteNotifierService : ServiceBase
+    public partial class KidsNoteForEveryoneService : ServiceBase
     {
         private KidsNoteNotifierManager Manager;
         private HashSet<ContentType> MonitoringTypes;
@@ -49,7 +49,7 @@ namespace KidsNoteNotifierService
         private static extern bool SetServiceStatus(IntPtr handle, ref ServiceStatus serviceStatus);
 #endif
 
-        public KidsNoteNotifierService()
+        public KidsNoteForEveryoneService()
         {
             InitializeComponent();
 

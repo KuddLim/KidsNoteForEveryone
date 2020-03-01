@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{D000198B-1334-4EFA-AC4D-C487B3EB53AE}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>KidsNoteNotifierService</RootNamespace>
-    <AssemblyName>KidsNoteNotifierService</AssemblyName>
+    <RootNamespace>KidsNoteForEveryoneService</RootNamespace>
+    <AssemblyName>KidsNoteForEveryoneService</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -52,11 +52,11 @@
     <Compile Include="ProjectInstaller.Designer.cs">
       <DependentUpon>ProjectInstaller.cs</DependentUpon>
     </Compile>
-    <Compile Include="KidsNoteNotifierService.cs">
+    <Compile Include="KidsNoteForEveryoneService.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="KidsNoteNotifierService.Designer.cs">
-      <DependentUpon>KidsNoteNotifierService.cs</DependentUpon>
+    <Compile Include="KidsNoteForEveryoneService.Designer.cs">
+      <DependentUpon>KidsNoteForEveryoneService.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -70,9 +70,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Libs\LibKidsNoteNotifier\LibKidsNoteNotifier.csproj">
+    <ProjectReference Include="..\Libs\LibKidsNoteForEveryone\LibKidsNoteForEveryone.csproj">
       <Project>{f0458adc-8f7c-4e13-b9a2-8b90226e2270}</Project>
-      <Name>LibKidsNoteNotifier</Name>
+      <Name>LibKidsNoteForEveryone</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

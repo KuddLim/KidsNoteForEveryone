@@ -114,9 +114,12 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Libs\LibKidsNoteNotifier\LibKidsNoteNotifier.csproj">
+    <WCFMetadata Include="Connected Services\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Libs\LibKidsNoteForEveryone\LibKidsNoteForEveryone.csproj">
       <Project>{f0458adc-8f7c-4e13-b9a2-8b90226e2270}</Project>
-      <Name>LibKidsNoteNotifier</Name>
+      <Name>LibKidsNoteForEveryone</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

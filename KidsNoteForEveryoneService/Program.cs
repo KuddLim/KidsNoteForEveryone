@@ -5,7 +5,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KidsNoteNotifierService
+namespace KidsNoteForEveryoneService
 {
     static class Program
     {
@@ -17,7 +17,7 @@ namespace KidsNoteNotifierService
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
-                new KidsNoteNotifierService()
+                new KidsNoteForEveryoneService()
             };
             ServiceBase.Run(ServicesToRun);
         }

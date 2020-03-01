@@ -7,7 +7,7 @@ using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
 
-namespace LibKidsNoteNotifier.Bot
+namespace LibKidsNoteForEveryone.Bot
 {
     public class NotifierBot
     {

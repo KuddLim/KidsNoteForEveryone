@@ -1,0 +1,11 @@
+bin/
+.vs/
+KidsNoteForEveryone/bin
+KidsNoteForEveryone/obj
+KidsNoteForEveryoneService/bin
+KidsNoteForEveryoneService/obj
+Libs/LibKidsNoteForEveryone/bin
+Libs/LibKidsNoteForEveryone/obj
+Tester/obj
+packages/
+etc/

@@ -12,7 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using LibKidsNoteNotifier;
+using LibKidsNoteForEveryone;
 
 namespace Tester
 {
@@ -21,12 +21,12 @@ namespace Tester
     /// </summary>
     public partial class MainWindow : Window
     {
-        private LibKidsNoteNotifier.Bot.NotifierBot TheBot;
+        private LibKidsNoteForEveryone.Bot.NotifierBot TheBot;
         private KidsNoteNotifierManager NotifierManager;
         private KidsNoteClient Client;
         private Configuration Conf;
         private FetchHistory History;
-        private LibKidsNoteNotifier.GoogleDrive.Uploader Uploader;
+        private LibKidsNoteForEveryone.GoogleDrive.Uploader Uploader;
 
         public MainWindow()
         {
@@ -34,7 +34,7 @@ namespace Tester
             Client.GetCurrentConfiguration = this.GetConfiguration;
             Conf = GetConfiguration();
 
-            TheBot = new LibKidsNoteNotifier.Bot.NotifierBot(Conf.TelegramBotToken);
+            TheBot = new LibKidsNoteForEveryone.Bot.NotifierBot(Conf.TelegramBotToken);
 
             InitializeComponent();
             InitUi();
@@ -246,7 +246,7 @@ namespace Tester
         {
             if (Uploader == null)
             {
-                Uploader = new LibKidsNoteNotifier.GoogleDrive.Uploader(CredentialsPath(), TokenFilePath(), Conf.ChildName);
+                Uploader = new LibKidsNoteForEveryone.GoogleDrive.Uploader(CredentialsPath(), TokenFilePath(), Conf.ChildName);
                 Uploader.GetBaseFolderId = this.GetBaseFolderId;
                 Uploader.SetBaseFolderId = this.SetBaseFolderId;
                 Uploader.Startup();

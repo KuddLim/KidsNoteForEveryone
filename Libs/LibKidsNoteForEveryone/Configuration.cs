@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace LibKidsNoteNotifier
+namespace LibKidsNoteForEveryone
 {
     public class Configuration
     {

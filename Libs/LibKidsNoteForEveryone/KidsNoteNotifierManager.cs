@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Quartz;
 using Quartz.Impl;
 
-namespace LibKidsNoteNotifier
+namespace LibKidsNoteForEveryone
 {
     public class KidsNoteNotifierManager
     {

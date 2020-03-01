@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace LibKidsNoteNotifier.GoogleDrive
+namespace LibKidsNoteForEveryone.GoogleDrive
 {
     public class Uploader
     {

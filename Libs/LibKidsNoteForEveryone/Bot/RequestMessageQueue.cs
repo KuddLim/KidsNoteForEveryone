@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace LibKidsNoteNotifier.Bot
+namespace LibKidsNoteForEveryone.Bot
 {
     public class RequestMessage
     {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace LibKidsNoteNotifier
+namespace LibKidsNoteForEveryone
 {
     public class KidsNoteChecker : Fundamentals.Looper
     {
