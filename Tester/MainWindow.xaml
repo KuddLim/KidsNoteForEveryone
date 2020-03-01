@@ -1,0 +1,39 @@
+﻿<Window x:Class="Tester.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Tester"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="558" Width="444" ResizeMode="NoResize">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="285*"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <GroupBox Header="KidsNote Test" HorizontalAlignment="Left" Height="257" Margin="10,10,0,0" VerticalAlignment="Top" Width="416" />
+        <Label Content="KidsNote ID :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Height="29" Margin="22,32,0,0" VerticalAlignment="Top" Width="100"/>
+        <TextBox x:Name="textKidsNoteId" HorizontalAlignment="Left" Height="24" Margin="127,32,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="152"/>
+        <Label Content="KidsNote PW :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Height="29" Margin="22,61,0,0" VerticalAlignment="Top" Width="100"/>
+        <Label Content="Child Name :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Height="29" Margin="22,88,0,0" VerticalAlignment="Top" Width="100"/>
+        <TextBox x:Name="textChildName" HorizontalAlignment="Left" Height="24" Margin="127,90,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="152"/>
+        <PasswordBox x:Name="kidsNotePassword" HorizontalAlignment="Left" Height="24" Margin="127,61,0,0" VerticalAlignment="Top" Width="152"/>
+        <ComboBox x:Name="cmbContentTypes" HorizontalAlignment="Left" Height="24" Margin="289,32,0,0" VerticalAlignment="Top" Width="131"/>
+        <Button x:Name="buttonGetContentList" Content="목록 보기" HorizontalAlignment="Left" Height="24" Margin="289,61,0,0" VerticalAlignment="Top" Width="131" Click="buttonTest_GetContent"/>
+        <ListBox x:Name="listContents" HorizontalAlignment="Left" Height="135" Margin="26,122,0,0" VerticalAlignment="Top" Width="394"/>
+        <GroupBox Header="Telegram Test" HorizontalAlignment="Left" Height="142" Margin="10,267,0,0" VerticalAlignment="Top" Width="416"/>
+        <Label Content="Telegram Bot Token :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Height="29" Margin="10,319,0,0" VerticalAlignment="Top" Width="155"/>
+        <TextBox x:Name="textTelegramBotToken" HorizontalAlignment="Left" Height="24" Margin="170,322,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="250"/>
+        <Label Content="Telegram Admin User ID :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Height="29" Margin="10,351,0,0" VerticalAlignment="Top" Width="155"/>
+        <TextBox x:Name="textTelegramMainUserId" HorizontalAlignment="Left" Height="24" Margin="170,351,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="250" RenderTransformOrigin="1.158,10.792"/>
+        <TextBox x:Name="textTelegramUsers" HorizontalAlignment="Left" Height="24" Margin="170,290,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="250"/>
+        <Label Content="Telegram User ID :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Height="29" Margin="10,290,0,0" VerticalAlignment="Top" Width="155"/>
+        <Button x:Name="buttonStartBot" Content="Bot 시작" HorizontalAlignment="Left" Margin="265,380,0,0" VerticalAlignment="Top" Width="75" Height="20" Click="buttonStartBot_Click"/>
+        <Button x:Name="buttonStopBot" Content="Bot 종료" HorizontalAlignment="Left" Margin="345,380,0,0" VerticalAlignment="Top" Width="75" Height="20" IsEnabled="False" Click="buttonStopBot_Click"/>
+        <Button x:Name="buttonSaveConfiguration" Content="설정 저장" HorizontalAlignment="Left" Height="24" Margin="326,481,0,0" VerticalAlignment="Top" Width="100" RenderTransformOrigin="1.195,-6.042" Click="buttonSaveConfiguration_Click"/>
+        <Button x:Name="buttonTestAll" Content="전체 테스트" HorizontalAlignment="Left" Margin="222,481,0,0" VerticalAlignment="Top" Width="100" Height="24" RenderTransformOrigin="0.62,0.542" Click="buttonTestAll_Click"/>
+        <GroupBox Header="Google Drive Test" HorizontalAlignment="Left" Height="75" Margin="10,401,0,0" VerticalAlignment="Top" Width="416" />
+        <Button x:Name="buttonListFiles" Content="List Files" HorizontalAlignment="Left" Height="20" Margin="22,424,0,0" VerticalAlignment="Top" Width="75" RenderTransformOrigin="1.543,2.5" Click="buttonListFiles_Click"/>
+        <Label x:Name="labelGoogleDriveInfo" Content="안내메시지." HorizontalAlignment="Left" Height="55" Margin="102,421,0,0" VerticalAlignment="Top" Width="321"/>
+    </Grid>
+</Window>

@@ -1,0 +1,16 @@
+{
+  "manager_chat_id": 0,
+  "subscriber_id_list": [],
+  "telebram_bot_token": "",
+  "operation_hour_begin": 0,
+  "operation_hour_end": 0,
+  "kidsnote_id": "",
+  "kidsnote_password": "",
+  "last_report_id": 0,
+  "last_notice_id": 0,
+  "last_album_id": 0,
+  "last_caneldar_id": 0,
+  "last_menu_id": 0,
+  "last_medication_id": 0,
+  "last_return_home_id": 0
+}

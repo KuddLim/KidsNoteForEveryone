@@ -1,0 +1,5 @@
+Scopes justification.
+
+My app will use https://googleapis.com/auth/drive to backup user's data of website "https://kidsnote.com" which is #1 kindergarten community.
+Almost every kindergarten in South Korea uses this service to share daily moments of kid in there to his/her parents.
+My app periodically checks if new content is uploaded and upload it to user's personal Google Drive account.
