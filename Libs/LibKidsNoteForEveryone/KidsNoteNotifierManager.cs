@@ -24,6 +24,9 @@ namespace LibKidsNoteForEveryone
             MonitoringTypes = monitoringTypes;
             TheConfiguration = GetConfiguration();
 
+            FileLogger.Singleton.UseLogger = this.UseLogger;
+            FileLogger.Singleton.WriteLog("Config path : " + SetupFilePath());
+
             LastErrorTime = DateTime.MinValue;
 
             TheBot = new Bot.NotifierBot(TheConfiguration.TelegramBotToken);
@@ -131,6 +134,11 @@ namespace LibKidsNoteForEveryone
                         ++page;
                         LinkedList<KidsNoteContent> nextOnes = TheClient.DownloadContent(eachType, lastId, page);
 
+                        if (nextOnes.Count == 0)
+                        {
+                            break;
+                        }
+
                         foreach (var nextOne in nextOnes)
                         {
                             newOnes.AddLast(nextOne);
@@ -236,13 +244,33 @@ namespace LibKidsNoteForEveryone
 
         private string SetupFilePath()
         {
-            string path = AppDomain.CurrentDomain.BaseDirectory + "\\config.json";
+            string path = "";
+
+            if (Fundamentals.Platform.IsRunningOnMono())
+            {
+                path = "config.json";
+            }
+            else
+            {
+                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "config.json";
+            }
+
             return path;
         }
 
         private string HistoryFilePath()
         {
-            string path = AppDomain.CurrentDomain.BaseDirectory + "\\history.json";
+            string path = "";
+
+            if (Fundamentals.Platform.IsRunningOnMono())
+            {
+                return "history.json";
+            }
+            else
+            {
+                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "history.json";
+            }
+
             return path;
         }
 
@@ -336,6 +364,11 @@ namespace LibKidsNoteForEveryone
             {
                 TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, message);
             }
+        }
+
+        private bool UseLogger()
+        {
+            return TheConfiguration.UseLogger;
         }
     }
 

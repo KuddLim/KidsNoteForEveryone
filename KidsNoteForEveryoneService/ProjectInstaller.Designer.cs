@@ -30,20 +30,21 @@
         {
             this.serviceProcessInstaller1 = new System.ServiceProcess.ServiceProcessInstaller();
             this.serviceInstaller1 = new System.ServiceProcess.ServiceInstaller();
-            //
+            // 
             // serviceProcessInstaller1
-            //
+            // 
             this.serviceProcessInstaller1.Account = System.ServiceProcess.ServiceAccount.LocalSystem;
             this.serviceProcessInstaller1.Password = null;
             this.serviceProcessInstaller1.Username = null;
-            //
+            // 
             // serviceInstaller1
-            //
-            this.serviceInstaller1.Description = "Periodically checks if new content is uploaded on kidsnote, send it to subscribers and backup to Google Drive account.";
-            this.serviceInstaller1.ServiceName = "KidsNoteNotifier";
-            //
+            // 
+            this.serviceInstaller1.Description = "Periodically checks if new content is uploaded on kidsnote, send it to subscriber" +
+    "s and backup to Google Drive account.";
+            this.serviceInstaller1.ServiceName = "KidsNoteForEveryone";
+            // 
             // ProjectInstaller
-            //
+            // 
             this.Installers.AddRange(new System.Configuration.Install.Installer[] {
             this.serviceProcessInstaller1,
             this.serviceInstaller1});

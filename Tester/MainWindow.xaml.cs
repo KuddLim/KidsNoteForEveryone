@@ -32,11 +32,10 @@ namespace Tester
         {
             Client = new KidsNoteClient();
             Client.GetCurrentConfiguration = this.GetConfiguration;
-            Conf = GetConfiguration();
-
-            TheBot = new LibKidsNoteForEveryone.Bot.NotifierBot(Conf.TelegramBotToken);
 
             InitializeComponent();
+
+            Conf = GetConfiguration();
             InitUi();
         }
 
@@ -83,7 +82,30 @@ namespace Tester
                 return;
             }
 
+            string id = textKidsNoteId.Text.Trim();
+            string password = kidsNotePassword.Password.Trim();
+            if (id == "" || password == "")
+            {
+                MessageBox.Show("키즈 노트 계정을 입력하세요", "", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (Conf.KidsNoteId != id)
+            {
+                Conf.KidsNoteId = id;
+            }
+            if (Conf.KidsNotePassword != password)
+            {
+                Conf.KidsNotePassword = password;
+            }
+
             LinkedList<KidsNoteContent> content = Client.DownloadContent(type, History.GetLastContentId(type));
+
+            if (content == null || content.Count == 0)
+            {
+                MessageBox.Show("게시물이 없거나 가져오지 못했습니다");
+                return;
+            }
 
             foreach (var each in content)
             {
@@ -96,26 +118,26 @@ namespace Tester
 
         private string SetupFilePath()
         {
-            string path = AppDomain.CurrentDomain.BaseDirectory + "\\config.json";
+            string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "config.json";
             return path;
         }
 
         private string HistoryFilePath()
         {
-            string path = AppDomain.CurrentDomain.BaseDirectory + "\\history.json";
+            string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "history.json";
             return path;
         }
 
         private string TokenFilePath()
         {
-            string path = AppDomain.CurrentDomain.BaseDirectory + "\\token.json";
+            string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "token.json";
             return path;
         }
 
         private string CredentialsPath()
         {
             // 프로젝트에 등록된 credentials.json
-            string path = AppDomain.CurrentDomain.BaseDirectory + "\\credentials.json";
+            string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "credentials.json";
             return path;
         }
 
@@ -177,6 +199,24 @@ namespace Tester
 
         private void buttonStartBot_Click(object sender, RoutedEventArgs e)
         {
+            if (TheBot == null)
+            {
+                string botToken = textTelegramBotToken.Text.Trim();
+
+                if (botToken == "")
+                {
+                    MessageBox.Show("텔레그램 봇 토큰을 입력하세요");
+                    return;
+                }
+
+                if (Conf.TelegramBotToken != botToken)
+                {
+                    Conf.TelegramBotToken = botToken;
+                }
+
+                TheBot = new LibKidsNoteForEveryone.Bot.NotifierBot(Conf.TelegramBotToken);
+            }
+
             TheBot.Startup();
 
             buttonStartBot.IsEnabled = false;

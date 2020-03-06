@@ -46,11 +46,17 @@ namespace LibKidsNoteForEveryone
         [JsonProperty("google_drive_backup_folder_id")]
         public string GoogleDriveBackupFolderId { get; set; }
 
+        // 로그 사용여부 (일반적인 경우 사용하지 않아도 됨).
+        [JsonProperty("use_logger")]
+        public bool UseLogger { get; set; }
+
+
         static private byte[] EncryptionKey = System.Text.Encoding.UTF8.GetBytes("KiDs_nOTe_BoT!!!");   // 변경해서 사용하는 것을 권장
         static private byte[] EncryptionIV = System.Text.Encoding.UTF8.GetBytes("~!@#$%^&*()_+|}{");    // 변경해서 사용하는 것을 권장
 
         public Configuration()
         {
+            ManagerChatId = 0;
             SubscriberIdList = new List<Telegram.Bot.Types.ChatId>();
             TelegramBotToken = "";
             KidsNoteId = "";

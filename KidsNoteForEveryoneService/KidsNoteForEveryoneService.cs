@@ -1,5 +1,4 @@
-﻿using LibKidsNoteForEveryone;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -10,6 +9,8 @@ using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
+using LibKidsNoteForEveryone;
+using LibKidsNoteForEveryone.Fundamentals;
 
 namespace KidsNoteForEveryoneService
 {
@@ -91,17 +92,19 @@ namespace KidsNoteForEveryoneService
 
             if (Manager != null)
             {
-#if !MONO
-                Status.dwCurrentState = ServiceState.SERVICE_PAUSE_PENDING;
-                SetServiceStatus(this.ServiceHandle, ref Status);
-#endif
+                if (!Platform.IsRunningOnMono())
+                {
+                    Status.dwCurrentState = ServiceState.SERVICE_PAUSE_PENDING;
+                    SetServiceStatus(this.ServiceHandle, ref Status);
+                }
 
                 Manager.Cleanup();
 
-#if !MONO
-                Status.dwCurrentState = ServiceState.SERVICE_PAUSED;
-                SetServiceStatus(this.ServiceHandle, ref Status);
-#endif
+                if (!Platform.IsRunningOnMono())
+                {
+                    Status.dwCurrentState = ServiceState.SERVICE_PAUSED;
+                    SetServiceStatus(this.ServiceHandle, ref Status);
+                }
 
                 Manager = null;
             }
@@ -111,18 +114,26 @@ namespace KidsNoteForEveryoneService
         {
             if (Manager == null)
             {
-#if !MONO
-                Status.dwCurrentState = ServiceState.SERVICE_START_PENDING;
-                SetServiceStatus(this.ServiceHandle, ref Status);
-#endif
+                if (!Platform.IsRunningOnMono())
+                {
+                    Status.dwCurrentState = ServiceState.SERVICE_START_PENDING;
+                    SetServiceStatus(this.ServiceHandle, ref Status);
+                }
 
                 Manager = new KidsNoteNotifierManager(MonitoringTypes);
+
+                KidsNoteScheduleParameters param = new KidsNoteScheduleParameters();
+                param.Days = KidsNoteScheduleParameters.DaysType.MON_FRI;
+                param.Job = KidsNoteScheduleParameters.JobType.JOB_CHECK_NEW_CONTENTS;
+                Manager.AddJob(param);
+
                 Manager.Startup();
 
-#if !MONO
-                Status.dwCurrentState = ServiceState.SERVICE_RUNNING;
-                SetServiceStatus(this.ServiceHandle, ref Status);
-#endif
+                if (!Platform.IsRunningOnMono())
+                {
+                    Status.dwCurrentState = ServiceState.SERVICE_RUNNING;
+                    SetServiceStatus(this.ServiceHandle, ref Status);
+                }
             }
         }
     }
