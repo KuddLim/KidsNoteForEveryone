@@ -30,7 +30,6 @@ namespace LibKidsNoteForEveryone
             LastErrorTime = DateTime.MinValue;
 
             TheBot = new Bot.NotifierBot(TheConfiguration.TelegramBotToken);
-            TheBot.Startup();
         }
 
         public void Startup()
@@ -39,6 +38,12 @@ namespace LibKidsNoteForEveryone
             schedulerTask.Wait();
             IScheduler scheduler = schedulerTask.Result;
             scheduler.Start();
+
+            TheBot.Startup();
+            if (TheConfiguration.ManagerChatId.Identifier != 0)
+            {
+                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 시작되었습니다");
+            }
         }
 
         public void Cleanup()
@@ -47,6 +52,12 @@ namespace LibKidsNoteForEveryone
             schedulerTask.Wait();
             IScheduler scheduler = schedulerTask.Result;
             scheduler.Shutdown();
+
+            if (TheConfiguration.ManagerChatId.Identifier != 0)
+            {
+                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 시작되었습니다");
+            }
+            TheBot.Cleanup();
         }
 
         public void AddJob(KidsNoteScheduleParameters param)
