@@ -30,6 +30,8 @@ namespace LibKidsNoteForEveryone
             LastErrorTime = DateTime.MinValue;
 
             TheBot = new Bot.NotifierBot(TheConfiguration.TelegramBotToken);
+            TheBot.AdminUserChatId = this.AdminUserChatId;
+            TheBot.AddSubscriber = this.AddSubscriber;
         }
 
         public void Startup()
@@ -58,6 +60,34 @@ namespace LibKidsNoteForEveryone
                 TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 시작되었습니다");
             }
             TheBot.Cleanup();
+        }
+
+        private long AdminUserChatId()
+        {
+            TheConfiguration = GetConfiguration();
+            return TheConfiguration.ManagerChatId.Identifier;
+        }
+
+        private bool AddSubscriber(long chatId)
+        {
+            string jsonPath = SetupFilePath();
+            string jsonPathBackup = jsonPath + ".backup";
+            bool success = true;
+            try
+            {
+                string json = System.IO.File.ReadAllText(jsonPath);
+                Configuration newConf = Configuration.FromJson(json);
+                newConf.SubscriberIdList.Add(chatId);
+                newConf.Save(jsonPathBackup);
+                System.IO.File.Copy(jsonPathBackup, jsonPath, true);
+                System.IO.File.Delete(jsonPathBackup);
+            }
+            catch (Exception)
+            {
+                success = false;
+            }
+
+            return success;
         }
 
         public void AddJob(KidsNoteScheduleParameters param)
@@ -216,7 +246,7 @@ namespace LibKidsNoteForEveryone
 
         public void DoScheduledCheck()
         {
-            TheConfiguration = GetConfiguration();
+            TheConfiguration = GetConfigurationImpl(true);
             History = GetHistory();
 
             DateTime now = DateTime.Now;
@@ -287,13 +317,18 @@ namespace LibKidsNoteForEveryone
 
         private Configuration GetConfiguration()
         {
+            return GetConfigurationImpl(false);
+        }
+
+        private Configuration GetConfigurationImpl(bool forceReload)
+        {
             string jsonFile = SetupFilePath();
 
             try
             {
                 if (System.IO.File.Exists(jsonFile))
                 {
-                    if (TheConfiguration == null)
+                    if (TheConfiguration == null || forceReload)
                     {
                         string json = System.IO.File.ReadAllText(jsonFile);
                         TheConfiguration = Configuration.FromJson(json);

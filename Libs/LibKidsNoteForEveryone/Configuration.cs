@@ -16,7 +16,7 @@ namespace LibKidsNoteForEveryone
 
         // 텔레그램 봇과 구독자 단체대화방간의 텔레그램 Chat ID
         [JsonProperty("subscriber_id_list")]
-        public List<Telegram.Bot.Types.ChatId> SubscriberIdList { get; set; }
+        public HashSet<Telegram.Bot.Types.ChatId> SubscriberIdList { get; set; }
 
         // BotFather 로 생성한 텔레그램 봇 token
         [JsonProperty("telebram_bot_token")]
@@ -57,7 +57,7 @@ namespace LibKidsNoteForEveryone
         public Configuration()
         {
             ManagerChatId = 0;
-            SubscriberIdList = new List<Telegram.Bot.Types.ChatId>();
+            SubscriberIdList = new HashSet<Telegram.Bot.Types.ChatId>();
             TelegramBotToken = "";
             KidsNoteId = "";
             KidsNotePassword = "";
@@ -71,7 +71,10 @@ namespace LibKidsNoteForEveryone
             Configuration conf = JsonConvert.DeserializeObject<Configuration>(json);
             conf.KidsNoteId = Decrypt(conf.KidsNoteId);
             conf.KidsNotePassword = Decrypt(conf.KidsNotePassword);
-            conf.SubscriberIdList = new List<Telegram.Bot.Types.ChatId>();
+            if (conf.SubscriberIdList == null)
+            {
+                conf.SubscriberIdList = new HashSet<Telegram.Bot.Types.ChatId>();
+            }
             return conf;
         }
 

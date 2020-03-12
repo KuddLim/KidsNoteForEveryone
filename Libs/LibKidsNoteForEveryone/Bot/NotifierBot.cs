@@ -11,9 +11,15 @@ namespace LibKidsNoteForEveryone.Bot
 {
     public class NotifierBot
     {
+        public delegate long AdminUserChatIdDelegate();
+        public delegate bool AddSubscriberDelegate(long chatId);
+
         private Telegram.Bot.TelegramBotClient TheClient;
         private RequestMessageQueue RequestQueue;
         private ResponseMessageQueue ResponseQueue;
+
+        public AdminUserChatIdDelegate AdminUserChatId;
+        public AddSubscriberDelegate AddSubscriber;
 
         public NotifierBot(string apiKey)
         {
@@ -84,10 +90,30 @@ namespace LibKidsNoteForEveryone.Bot
 
         public void HandleMessage(RequestMessage message)
         {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("당신의 텔레그램 ChatId 는 {0} 입니다.\n이 봇은 등록된 사용자만 사용가능합니다.", message.ChatId);
-            sb.AppendFormat("\n\nYour Telegram ChatId is {0}.\nThis bot is for registered users only.", message.ChatId);
-            ResponseQueue.Enqueue(new List<ChatId>() { message.ChatId }, sb.ToString());
+            bool handledAsAsmin = false;
+            if (message.ChatId == AdminUserChatId())
+            {
+                string[] tokens = message.Message.Split(' ');
+                if (tokens.Length == 2)
+                {
+                    long param = 0;
+                    if (tokens[0] == "추가" && long.TryParse(tokens[1], out param))
+                    {
+                        if (AddSubscriber(param))
+                        {
+                            handledAsAsmin = true;
+                            ResponseQueue.Enqueue(new List<ChatId>(){message.ChatId}, "추가하였습니다");
+                        }
+                    }
+                }
+            }
+            if (!handledAsAsmin)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendFormat("당신의 텔레그램 ChatId 는 {0} 입니다.\n이 봇은 등록된 사용자만 사용가능합니다.", message.ChatId);
+                sb.AppendFormat("\n\nYour Telegram ChatId is {0}.\nThis bot is for registered users only.", message.ChatId);
+                ResponseQueue.Enqueue(new List<ChatId>() { message.ChatId }, sb.ToString());
+            }
         }
 
         public void SendNewContents(List<ChatId> receivers, KidsNoteNotifyMessage message)
