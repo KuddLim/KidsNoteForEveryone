@@ -85,7 +85,7 @@ namespace LibKidsNoteForEveryone
 
 #if DEBUG
             DateTime scheduled = DateTime.Now;
-            scheduled += new TimeSpan(0, 0, 0, 10);
+            scheduled += new TimeSpan(0, 0, 0, 30);
 #endif
 
             string cronFormat = "";

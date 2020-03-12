@@ -206,7 +206,7 @@ namespace LibKidsNoteForEveryone.Bot
         private string FormatContent(ContentType type, KidsNoteContent content)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(BoardName(type));
+            sb.AppendFormat("{0} [{1}]", BoardName(type), content.Id);
             sb.AppendFormat("\n제목 : {0}, 작성자 : {1}", content.Title, content.Writer);
             sb.Append("\n\n");
             sb.Append(content.Content);
