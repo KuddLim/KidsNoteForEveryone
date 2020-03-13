@@ -16,7 +16,7 @@ namespace LibKidsNoteForEveryone
         public string Title { get; set; }
         public string Writer { get; set; }
         public string Content { get; set; }
-        public LinkedList<Attachment> Attachments { get; set; }
+        public List<Attachment> Attachments { get; set; }
 
         public class Attachment
         {
@@ -45,7 +45,7 @@ namespace LibKidsNoteForEveryone
             Title = "";
             Writer = "";
             Content = "";
-            Attachments = new LinkedList<Attachment>();
+            Attachments = new List<Attachment>();
         }
     }
 }

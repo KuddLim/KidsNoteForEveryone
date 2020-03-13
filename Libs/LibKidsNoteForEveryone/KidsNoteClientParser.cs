@@ -70,7 +70,7 @@ namespace LibKidsNoteForEveryone
                         {
                             string[] tokens = href.Split('/');
                             attachment = new KidsNoteContent.Attachment(AttachmentType.IMAGE, tokens.Last(), dataDownload, href);
-                            content.Attachments.AddLast(attachment);
+                            content.Attachments.Add(attachment);
 
                             System.Diagnostics.Trace.WriteLine(dataDownload);
                         }
@@ -124,7 +124,7 @@ namespace LibKidsNoteForEveryone
 
                     if (attach.Name != "" && attach.DownloadUrl != "")
                     {
-                        content.Attachments.AddLast(attach);
+                        content.Attachments.Add(attach);
                     }
                     else
                     {

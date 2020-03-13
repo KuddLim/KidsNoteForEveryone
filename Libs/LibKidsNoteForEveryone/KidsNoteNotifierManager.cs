@@ -32,6 +32,7 @@ namespace LibKidsNoteForEveryone
             TheBot = new Bot.NotifierBot(TheConfiguration.TelegramBotToken);
             TheBot.AdminUserChatId = this.AdminUserChatId;
             TheBot.AddSubscriber = this.AddSubscriber;
+            TheBot.AllNotificationsSent = this.AllNotificationsSent;
         }
 
         public void Startup()
@@ -88,6 +89,11 @@ namespace LibKidsNoteForEveryone
             }
 
             return success;
+        }
+
+        private void AllNotificationsSent(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        {
+            UpdateLastNotifiedIds(newContents);
         }
 
         public void AddJob(KidsNoteScheduleParameters param)
@@ -223,7 +229,6 @@ namespace LibKidsNoteForEveryone
                 }
 
                 TheBot.SendNewContents(receivers, new Bot.KidsNoteNotifyMessage(newContents));
-                UpdateLastNotifiedIds(newContents);
             }
             catch (Exception)
             {
