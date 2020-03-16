@@ -15,7 +15,8 @@ namespace CLITester
         public CliTester()
         {
             MonitoringTypes = new HashSet<ContentType>() {
-                ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM
+                //ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM
+                ContentType.NOTICE
             };
 
             Manager = new KidsNoteNotifierManager(MonitoringTypes);

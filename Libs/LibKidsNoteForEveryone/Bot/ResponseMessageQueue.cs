@@ -17,22 +17,22 @@ namespace LibKidsNoteForEveryone.Bot
         }
 
         public MessageType Type { get; set; }
-        public List<ChatId> ChatIds;
+        public HashSet<ChatId> ChatIds;
         public string Message { get; set; }
-        public KidsNoteNotifyMessage KidsNoteMessage { get; set; }
+        public KidsNoteNotification Notification { get; set; }
 
-        public ResponseMessage(List<ChatId> chatIds, string message)
+        public ResponseMessage(HashSet<ChatId> chatIds, string message)
         {
             Type = MessageType.GENERAL_MESSAGE;
             ChatIds = chatIds;
             Message = message;
         }
 
-        public ResponseMessage(List<ChatId> chatIds, KidsNoteNotifyMessage message)
+        public ResponseMessage(HashSet<ChatId> chatIds, KidsNoteNotification notification)
         {
             Type = MessageType.KIDS_NOTE_MESSAGE;
             ChatIds = chatIds;
-            KidsNoteMessage = message;
+            Notification = notification;
         }
     }
 
@@ -62,15 +62,18 @@ namespace LibKidsNoteForEveryone.Bot
             Join();
         }
 
-        public void Enqueue(List<ChatId> chatIds, KidsNoteNotifyMessage message)
+        public void Enqueue(Dictionary<ContentType, KidsNoteNotification> notification)
         {
             lock (Locker)
             {
-                ResponseQueue.Enqueue(new ResponseMessage(chatIds, message));
+                foreach (var each in notification)
+                {
+                    ResponseQueue.Enqueue(new ResponseMessage(each.Value.Receivers, each.Value));
+                }
             }
         }
 
-        public void Enqueue(List<ChatId> chatIds, string message)
+        public void Enqueue(HashSet<ChatId> chatIds, string message)
         {
             lock (Locker)
             {

@@ -76,7 +76,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Bot\KidsNoteNotifyMessage.cs" />
     <Compile Include="Bot\RequestMessageQueue.cs" />
     <Compile Include="Bot\ResponseMessageQueue.cs" />
     <Compile Include="Constants.cs" />
@@ -90,6 +89,7 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="Fundamentals\Looper.cs" />
     <Compile Include="KidsNoteChecker.cs" />
+    <Compile Include="KidsNoteNotification.cs" />
     <Compile Include="KidsNoteScheduleParameters.cs" />
     <Compile Include="KidsNoteNotifierManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

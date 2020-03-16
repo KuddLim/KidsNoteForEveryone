@@ -58,7 +58,7 @@ namespace Tester
             textTelegramBotToken.Text = Conf.TelegramBotToken;
 
             List<long> converted = new List<long>();
-            foreach (var each in Conf.SubscriberIdList)
+            foreach (var each in Conf.AllBoardSubscribers)
             {
                 converted.Add(each.Identifier);
             }
@@ -261,13 +261,13 @@ namespace Tester
             Conf.TelegramBotToken = textTelegramBotToken.Text;
 
             string[] tokens = textTelegramUsers.Text.Split(',');
-            Conf.SubscriberIdList.Clear();
+            Conf.AllBoardSubscribers.Clear();
             foreach (var each in tokens)
             {
                 long id = 0;
                 if (long.TryParse(each.Trim(), out id))
                 {
-                    Conf.SubscriberIdList.Add(id);
+                    Conf.AllBoardSubscribers.Add(id);
                 }
             }
 

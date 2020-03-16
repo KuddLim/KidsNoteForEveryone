@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace LibKidsNoteForEveryone.GoogleDrive
 {
+    // https://stackoverflow.com/questions/19766912/how-do-i-authorise-an-app-web-or-installed-without-user-intervention
     public class Uploader
     {
         public delegate string GetBaseFolderIdDelegate();

@@ -15,8 +15,11 @@ namespace LibKidsNoteForEveryone
         public Telegram.Bot.Types.ChatId ManagerChatId { get; set; }
 
         // 텔레그램 봇과 구독자 단체대화방간의 텔레그램 Chat ID
-        [JsonProperty("subscriber_id_list")]
-        public HashSet<Telegram.Bot.Types.ChatId> SubscriberIdList { get; set; }
+        [JsonProperty("all_board_subscribers")]
+        public HashSet<Telegram.Bot.Types.ChatId> AllBoardSubscribers { get; set; }
+
+        [JsonProperty("subscriber_map")]
+        public Dictionary<ContentType, HashSet<Telegram.Bot.Types.ChatId>> SubScriberMap;
 
         // BotFather 로 생성한 텔레그램 봇 token
         [JsonProperty("telebram_bot_token")]
@@ -50,14 +53,24 @@ namespace LibKidsNoteForEveryone
         [JsonProperty("use_logger")]
         public bool UseLogger { get; set; }
 
-
         static private byte[] EncryptionKey = System.Text.Encoding.UTF8.GetBytes("KiDs_nOTe_BoT!!!");   // 변경해서 사용하는 것을 권장
         static private byte[] EncryptionIV = System.Text.Encoding.UTF8.GetBytes("~!@#$%^&*()_+|}{");    // 변경해서 사용하는 것을 권장
+        static HashSet<ContentType> KnownContentTypes = new HashSet<ContentType>()
+        {
+            ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM, ContentType.CALENDAR,
+            ContentType.MENUTABLE, ContentType.MEDS_REQUEST, ContentType.RETURN_HOME_NOTICE,
+        };
 
         public Configuration()
         {
             ManagerChatId = 0;
-            SubscriberIdList = new HashSet<Telegram.Bot.Types.ChatId>();
+            AllBoardSubscribers = new HashSet<Telegram.Bot.Types.ChatId>();
+            SubScriberMap = new Dictionary<ContentType, HashSet<Telegram.Bot.Types.ChatId>>();
+            foreach (ContentType ct in KnownContentTypes)
+            {
+                SubScriberMap[ct] = new HashSet<Telegram.Bot.Types.ChatId>();
+            }
+
             TelegramBotToken = "";
             KidsNoteId = "";
             KidsNotePassword = "";
@@ -71,10 +84,19 @@ namespace LibKidsNoteForEveryone
             Configuration conf = JsonConvert.DeserializeObject<Configuration>(json);
             conf.KidsNoteId = Decrypt(conf.KidsNoteId);
             conf.KidsNotePassword = Decrypt(conf.KidsNotePassword);
-            if (conf.SubscriberIdList == null)
+            if (conf.AllBoardSubscribers == null)
             {
-                conf.SubscriberIdList = new HashSet<Telegram.Bot.Types.ChatId>();
+                conf.AllBoardSubscribers = new HashSet<Telegram.Bot.Types.ChatId>();
             }
+
+            foreach (ContentType ct in KnownContentTypes)
+            {
+                if (!conf.SubScriberMap.ContainsKey(ct))
+                {
+                    conf.SubScriberMap[ct] = new HashSet<Telegram.Bot.Types.ChatId>();
+                }
+            }
+
             return conf;
         }
 
@@ -96,6 +118,44 @@ namespace LibKidsNoteForEveryone
         public void Save(string file)
         {
             System.IO.File.WriteAllText(file, ToJson());
+        }
+
+        public void AddSubscriber(long id, HashSet<ContentType> exclusions)
+        {
+            if (exclusions.Count == 0)
+            {
+                AllBoardSubscribers.Add(id);
+            }
+            else
+            {
+                foreach (ContentType ct in KnownContentTypes)
+                {
+                    if (!exclusions.Contains(ct))
+                    {
+                        SubScriberMap[ct].Add(id);
+                    }
+                }
+            }
+        }
+
+        public HashSet<Telegram.Bot.Types.ChatId> GetSubscribers(ContentType contentType)
+        {
+            HashSet<Telegram.Bot.Types.ChatId> subscribers = new HashSet<Telegram.Bot.Types.ChatId>(AllBoardSubscribers);
+
+            foreach (var each in AllBoardSubscribers)
+            {
+                subscribers.Add(each);
+            }
+
+            if (SubScriberMap.ContainsKey(contentType))
+            {
+                foreach (var each in SubScriberMap[contentType])
+                {
+                    subscribers.Add(each);
+                }
+            }
+
+            return subscribers;
         }
 
         static private AesCryptoServiceProvider CreateProvider(byte[] key)

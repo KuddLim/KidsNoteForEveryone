@@ -69,7 +69,7 @@ namespace LibKidsNoteForEveryone
             return TheConfiguration.ManagerChatId.Identifier;
         }
 
-        private bool AddSubscriber(long chatId)
+        private bool AddSubscriber(long chatId, HashSet<ContentType> exclusions)
         {
             string jsonPath = SetupFilePath();
             string jsonPathBackup = jsonPath + ".backup";
@@ -78,7 +78,7 @@ namespace LibKidsNoteForEveryone
             {
                 string json = System.IO.File.ReadAllText(jsonPath);
                 Configuration newConf = Configuration.FromJson(json);
-                newConf.SubscriberIdList.Add(chatId);
+                newConf.AddSubscriber(chatId, exclusions);
                 newConf.Save(jsonPathBackup);
                 System.IO.File.Copy(jsonPathBackup, jsonPath, true);
                 System.IO.File.Delete(jsonPathBackup);
@@ -91,9 +91,9 @@ namespace LibKidsNoteForEveryone
             return success;
         }
 
-        private void AllNotificationsSent(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        private void AllNotificationsSent(KidsNoteNotification notification)
         {
-            UpdateLastNotifiedIds(newContents);
+            UpdateLastNotifiedIds(notification.ContentType, notification.Contents);
         }
 
         public void AddJob(KidsNoteScheduleParameters param)
@@ -215,20 +215,18 @@ namespace LibKidsNoteForEveryone
 
         private void UpdateAndNotifyContents(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
         {
+            Dictionary<ContentType, KidsNoteNotification> notification = new Dictionary<ContentType, KidsNoteNotification>();
+            foreach (var each in newContents)
+            {
+                notification[each.Key] = new KidsNoteNotification();
+                notification[each.Key].ContentType = each.Key;
+                notification[each.Key].Receivers = TheConfiguration.GetSubscribers(each.Key);
+                notification[each.Key].Contents = each.Value;
+            }
+
             try
             {
-                List<Telegram.Bot.Types.ChatId> receivers = new List<Telegram.Bot.Types.ChatId>();
-                if (TheConfiguration.SubscriberIdList != null)
-                {
-                    receivers.AddRange(TheConfiguration.SubscriberIdList);
-                }
-
-                if (TheConfiguration.ManagerChatId != (Telegram.Bot.Types.ChatId)0)
-                {
-                    receivers.Add(TheConfiguration.ManagerChatId);
-                }
-
-                TheBot.SendNewContents(receivers, new Bot.KidsNoteNotifyMessage(newContents));
+                TheBot.SendNewContents(notification);
             }
             catch (Exception)
             {
@@ -236,14 +234,11 @@ namespace LibKidsNoteForEveryone
             }
         }
 
-        private void UpdateLastNotifiedIds(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        private void UpdateLastNotifiedIds(ContentType contentType, LinkedList<KidsNoteContent> newContents)
         {
-            foreach (var each in newContents)
+            if (newContents.Count > 0)
             {
-                if (newContents.Count > 0)
-                {
-                    History.SetLastContentId(each.Key, each.Value.First().Id);
-                }
+                History.SetLastContentId(contentType, newContents.First().Id);
             }
 
             History.Save(HistoryFilePath());
