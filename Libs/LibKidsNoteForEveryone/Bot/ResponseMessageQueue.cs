@@ -17,18 +17,18 @@ namespace LibKidsNoteForEveryone.Bot
         }
 
         public MessageType Type { get; set; }
-        public HashSet<ChatId> ChatIds;
+        public HashSet<long> ChatIds;
         public string Message { get; set; }
         public KidsNoteNotification Notification { get; set; }
 
-        public ResponseMessage(HashSet<ChatId> chatIds, string message)
+        public ResponseMessage(HashSet<long> chatIds, string message)
         {
             Type = MessageType.GENERAL_MESSAGE;
             ChatIds = chatIds;
             Message = message;
         }
 
-        public ResponseMessage(HashSet<ChatId> chatIds, KidsNoteNotification notification)
+        public ResponseMessage(HashSet<long> chatIds, KidsNoteNotification notification)
         {
             Type = MessageType.KIDS_NOTE_MESSAGE;
             ChatIds = chatIds;
@@ -73,7 +73,7 @@ namespace LibKidsNoteForEveryone.Bot
             }
         }
 
-        public void Enqueue(HashSet<ChatId> chatIds, string message)
+        public void Enqueue(HashSet<long> chatIds, string message)
         {
             lock (Locker)
             {

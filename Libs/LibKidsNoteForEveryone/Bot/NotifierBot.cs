@@ -86,7 +86,7 @@ namespace LibKidsNoteForEveryone.Bot
                             if (ct == ContentType.UNSPECIFIED)
                             {
                                 string error = String.Format("올바르지 않은 이름입니다 : {0}", ex);
-                                ResponseQueue.Enqueue(new HashSet<ChatId>() { message.ChatId }, error);
+                                ResponseQueue.Enqueue(new HashSet<long>() { message.ChatId }, error);
                                 return;
                             }
                             else
@@ -98,7 +98,7 @@ namespace LibKidsNoteForEveryone.Bot
                         if (AddSubscriber(param, exclusions))
                         {
                             handledAsAsmin = true;
-                            ResponseQueue.Enqueue(new HashSet<ChatId>(){message.ChatId}, "추가하였습니다");
+                            ResponseQueue.Enqueue(new HashSet<long>(){message.ChatId}, "추가하였습니다");
                         }
                     }
                 }
@@ -108,7 +108,7 @@ namespace LibKidsNoteForEveryone.Bot
                 StringBuilder sb = new StringBuilder();
                 sb.AppendFormat("당신의 텔레그램 ChatId 는 {0} 입니다.\n이 봇은 등록된 사용자만 사용가능합니다.", message.ChatId);
                 sb.AppendFormat("\n\nYour Telegram ChatId is {0}.\nThis bot is for registered users only.", message.ChatId);
-                ResponseQueue.Enqueue(new HashSet<ChatId>() { message.ChatId }, sb.ToString());
+                ResponseQueue.Enqueue(new HashSet<long>() { message.ChatId }, sb.ToString());
             }
         }
 
@@ -119,7 +119,7 @@ namespace LibKidsNoteForEveryone.Bot
 
         public void SendAdminMessage(ChatId receiver, string message)
         {
-            ResponseQueue.Enqueue(new HashSet<ChatId>() { receiver }, message);
+            ResponseQueue.Enqueue(new HashSet<long>() { receiver.Identifier }, message);
         }
 
         // TODO: ResponseQueue 에서만 접근 가능하도록.
@@ -151,7 +151,7 @@ namespace LibKidsNoteForEveryone.Bot
             }
         }
 
-        private void SendResponse(HashSet<Telegram.Bot.Types.ChatId> receivers, KidsNoteNotification notification)
+        private void SendResponse(HashSet<long> receivers, KidsNoteNotification notification)
         {
             foreach (var eachContent in notification.Contents)
             {
@@ -161,7 +161,10 @@ namespace LibKidsNoteForEveryone.Bot
                 List<Task<Message>> taskList = new List<Task<Message>>();
                 foreach (var user in receivers)
                 {
-                    taskList.Add(TheClient.SendTextMessageAsync(user, text));
+                    if (user != 0)
+                    {
+                        taskList.Add(TheClient.SendTextMessageAsync(user, text));
+                    }
                 }
 
                 // 메시지 순서가 섞이지 않도록 모두 보내질 때까지 대기.
@@ -256,7 +259,7 @@ namespace LibKidsNoteForEveryone.Bot
             AllNotificationsSent(notification);
         }
 
-        private void SendResponse(HashSet<ChatId> receivers, string message)
+        private void SendResponse(HashSet<long> receivers, string message)
         {
             foreach (var user in receivers)
             {

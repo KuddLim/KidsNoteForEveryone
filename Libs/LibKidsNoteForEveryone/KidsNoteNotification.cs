@@ -9,13 +9,13 @@ namespace LibKidsNoteForEveryone
     public class KidsNoteNotification
     {
         public ContentType ContentType;
-        public HashSet<Telegram.Bot.Types.ChatId> Receivers;
+        public HashSet<long> Receivers;
         public LinkedList<KidsNoteContent> Contents;
 
         public KidsNoteNotification()
         {
             ContentType = ContentType.UNSPECIFIED;
-            Receivers = new HashSet<Telegram.Bot.Types.ChatId>();
+            Receivers = new HashSet<long>();
             Contents = new LinkedList<KidsNoteContent>();
         }
     }

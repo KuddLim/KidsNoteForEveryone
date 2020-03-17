@@ -138,20 +138,25 @@ namespace LibKidsNoteForEveryone
             }
         }
 
-        public HashSet<Telegram.Bot.Types.ChatId> GetSubscribers(ContentType contentType)
+        public HashSet<long> GetSubscribers(ContentType contentType)
         {
-            HashSet<Telegram.Bot.Types.ChatId> subscribers = new HashSet<Telegram.Bot.Types.ChatId>(AllBoardSubscribers);
+            HashSet<long> subscribers = new HashSet<long>();
+
+            if (ManagerChatId.Identifier != 0)
+            {
+                subscribers.Add(ManagerChatId.Identifier);
+            }
 
             foreach (var each in AllBoardSubscribers)
             {
-                subscribers.Add(each);
+                subscribers.Add(each.Identifier);
             }
 
             if (SubScriberMap.ContainsKey(contentType))
             {
                 foreach (var each in SubScriberMap[contentType])
                 {
-                    subscribers.Add(each);
+                    subscribers.Add(each.Identifier);
                 }
             }
 
