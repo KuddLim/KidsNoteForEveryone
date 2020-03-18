@@ -142,12 +142,15 @@ namespace LibKidsNoteForEveryone
             return info;
         }
 
-        public LinkedList<KidsNoteContent> DownloadContent(ContentType type, UInt64 lastContentId, int page = 1)
+        public KidsNoteContentDownloadResult DownloadContent(ContentType type, UInt64 lastContentId, int page = 1)
         {
+            KidsNoteContentDownloadResult result = new KidsNoteContentDownloadResult();
+
             string url = ContentTypeUrl(type);
             if (url == "")
             {
-                return null;
+                result.Description = "URL 을 알 수 없음";
+                return result;
             }
 
             if (page > 1)
@@ -169,47 +172,56 @@ namespace LibKidsNoteForEveryone
                 {
                     KidsNoteClientProgressMessage("Login Failed");
                 }
-                return null;
+                result.Description = "로그인 실패";
+                return result;
             }
 
             KidsNoteClientResponse downLoadResult = DownloadPage(url);
             if (downLoadResult == null)
             {
-                return null;
+                result.Description = "페이지 다운로드 실패";
+                return result;
             }
 
             if (page > 1 && downLoadResult.Response.StatusCode == HttpStatusCode.NotFound)
             {
-                return new LinkedList<KidsNoteContent>();
+                result.Description = "페이지 다운로드 실패 : NotFound";
+                result.ContentList = new LinkedList<KidsNoteContent>();
+                return result;
             }
 
             if (downLoadResult.Response.StatusCode == HttpStatusCode.OK)
             {
-                string prefix = CssClassPrefix(type);
-                LinkedList<KidsNoteContent> contents = Parser.ParseArticleList(type, downLoadResult.Html, prefix);
+                result.Html = downLoadResult.Html;
 
-                if (contents == null)
+                string prefix = CssClassPrefix(type);
+                result.ContentList = Parser.ParseArticleList(type, downLoadResult.Html, prefix);
+
+                if (result.ContentList == null)
                 {
-                    return null;
+                    result.Description = "Parse 실패";
+                    return result;
                 }
 
-                var node = contents.First;
+                var node = result.ContentList.First;
                 while (node != null)
                 {
                     var next = node.Next;
                     if (node.Value.Id <= lastContentId)
                     {
-                        contents.Remove(node);
+                        result.ContentList.Remove(node);
                     }
 
                     node = next;
                 }
 
-                foreach (var each in contents)
+                foreach (var each in result.ContentList)
                 {
                     KidsNoteClientResponse eachResp = DownloadPage(each.OriginalPageUrl);
                     if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
                     {
+                        result.Html = eachResp.Html;
+
                         if (!RoleSelected && Parser.IsRoleSelectionPage(eachResp.Html))
                         {
                             RoleSelected = true;
@@ -226,7 +238,8 @@ namespace LibKidsNoteForEveryone
                             KidsNoteClientResponse roleResp = PostData(Constants.KIDSNOTE_ROLE_POST_URL, content);
                             if (roleResp.Response.StatusCode != HttpStatusCode.OK)
                             {
-                                return null;
+                                result.Description = "Role 설정 실패";
+                                return result;
                             }
                         }
 
@@ -256,17 +269,17 @@ namespace LibKidsNoteForEveryone
                                 }
                                 else
                                 {
-                                    System.Diagnostics.Trace.WriteLine("Download 실패");
+                                    result.Description = "Download 실패 : 첨부 이미지 다운로드 실패";
                                 }
                             }
                             else
                             {
-                                System.Diagnostics.Trace.WriteLine("Download 실패");
+                                result.Description = "Download 실패 : 코드 OK 아님";
                             }
                         }
                     }
                 }
-                return contents;
+                return result;
             }
 
             return null;

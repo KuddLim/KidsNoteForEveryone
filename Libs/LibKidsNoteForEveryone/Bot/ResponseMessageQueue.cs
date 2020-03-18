@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -19,13 +20,15 @@ namespace LibKidsNoteForEveryone.Bot
         public MessageType Type { get; set; }
         public HashSet<long> ChatIds;
         public string Message { get; set; }
+        public MemoryStream TextAttachment { get; set; }
         public KidsNoteNotification Notification { get; set; }
 
-        public ResponseMessage(HashSet<long> chatIds, string message)
+        public ResponseMessage(HashSet<long> chatIds, string message, MemoryStream textAttachment = null)
         {
             Type = MessageType.GENERAL_MESSAGE;
             ChatIds = chatIds;
             Message = message;
+            TextAttachment = textAttachment;
         }
 
         public ResponseMessage(HashSet<long> chatIds, KidsNoteNotification notification)
@@ -73,11 +76,11 @@ namespace LibKidsNoteForEveryone.Bot
             }
         }
 
-        public void Enqueue(HashSet<long> chatIds, string message)
+        public void Enqueue(HashSet<long> chatIds, string message, MemoryStream textAttachment = null)
         {
             lock (Locker)
             {
-                ResponseQueue.Enqueue(new ResponseMessage(chatIds, message));
+                ResponseQueue.Enqueue(new ResponseMessage(chatIds, message, textAttachment));
             }
         }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -58,7 +59,7 @@ namespace LibKidsNoteForEveryone
 
             if (TheConfiguration.ManagerChatId.Identifier != 0)
             {
-                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 시작되었습니다");
+                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 종료되었습니다");
             }
             TheBot.Cleanup();
         }
@@ -171,15 +172,18 @@ namespace LibKidsNoteForEveryone
                     UInt64 lastId = History.GetLastContentId(eachType);
 
                     int page = 1;
-                    LinkedList<KidsNoteContent> newOnes = TheClient.DownloadContent(eachType, lastId, page);
+                    KidsNoteContentDownloadResult result = TheClient.DownloadContent(eachType, lastId, page);
+                    LinkedList<KidsNoteContent> newOnes = result.ContentList;
 
                     // 공지사항은 너무 많고, 아이에게 크게 중요치 않으므로 다음페이지를 가져오지는 않는다.
                     while (eachType != ContentType.NOTICE && newOnes != null && newOnes.Count > 0 && newOnes.Last().Id > lastId)
                     {
                         System.Diagnostics.Trace.WriteLine("Get next page...");
 
+                        KidsNoteContentDownloadResult nextResult = TheClient.DownloadContent(eachType, lastId, page);
+
                         ++page;
-                        LinkedList<KidsNoteContent> nextOnes = TheClient.DownloadContent(eachType, lastId, page);
+                        LinkedList<KidsNoteContent> nextOnes = nextResult.ContentList;
 
                         if (nextOnes.Count == 0)
                         {
@@ -194,7 +198,8 @@ namespace LibKidsNoteForEveryone
 
                     if (newOnes == null)
                     {
-                        HandleContentParseFailed(eachType);
+                        // 보통은 첫 페이지를 넘어가지 않을 것이므로 result.Html 만 참조한다.
+                        HandleContentParseFailed(eachType, result.Html);
                         continue;
                     }
 
@@ -207,7 +212,6 @@ namespace LibKidsNoteForEveryone
             catch (Exception)
             {
                 newContents = null;
-                HandleContentParseFailed(ContentType.UNSPECIFIED);
             }
 
             return newContents;
@@ -247,7 +251,7 @@ namespace LibKidsNoteForEveryone
         public void DoScheduledCheck()
         {
             TheConfiguration = GetConfigurationImpl(true);
-            History = GetHistory();
+            History = GetHistory(true);
 
             DateTime now = DateTime.Now;
             if (TheConfiguration.OperationHourBegin != 0 && TheConfiguration.OperationHourBegin > now.Hour)
@@ -350,7 +354,7 @@ namespace LibKidsNoteForEveryone
             return null;
         }
 
-        private FetchHistory GetHistory()
+        private FetchHistory GetHistory(bool forceReload)
         {
             string jsonFile = HistoryFilePath();
 
@@ -358,7 +362,7 @@ namespace LibKidsNoteForEveryone
             {
                 if (System.IO.File.Exists(jsonFile))
                 {
-                    if (History == null)
+                    if (History == null || forceReload)
                     {
                         string json = System.IO.File.ReadAllText(jsonFile);
                         History = FetchHistory.FromJson(json);
@@ -382,10 +386,13 @@ namespace LibKidsNoteForEveryone
             NotifyError("설정 읽기에 실패하였습니다", false);
         }
 
-        private void HandleContentParseFailed(ContentType type)
+        private void HandleContentParseFailed(ContentType type, string html)
         {
+            MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(html));
+            ms.Seek(0, SeekOrigin.Begin);
+
             string message = "게시글 글 분석 실패 : " + type;
-            NotifyError(message);
+            NotifyError(message, true, ms);
         }
 
         private void HandleTelegramError()
@@ -393,7 +400,7 @@ namespace LibKidsNoteForEveryone
             NotifyError("텔레그램 전송 에러가 발생하였습니다");
         }
 
-        private void NotifyError(string message, bool checkLastTime = true)
+        private void NotifyError(string message, bool checkLastTime = true, MemoryStream textAttachment = null)
         {
             if (checkLastTime)
             {
@@ -408,7 +415,7 @@ namespace LibKidsNoteForEveryone
 
             if (TheConfiguration.ManagerChatId.Identifier != 0)
             {
-                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, message);
+                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, message, textAttachment);
             }
         }
 

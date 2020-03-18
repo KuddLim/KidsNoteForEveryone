@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.InputFiles;
 
 namespace LibKidsNoteForEveryone.Bot
 {
@@ -117,9 +118,9 @@ namespace LibKidsNoteForEveryone.Bot
             ResponseQueue.Enqueue(notification);
         }
 
-        public void SendAdminMessage(ChatId receiver, string message)
+        public void SendAdminMessage(ChatId receiver, string message, MemoryStream textAttachment = null)
         {
-            ResponseQueue.Enqueue(new HashSet<long>() { receiver.Identifier }, message);
+            ResponseQueue.Enqueue(new HashSet<long>() { receiver.Identifier }, message, textAttachment);
         }
 
         // TODO: ResponseQueue 에서만 접근 가능하도록.
@@ -138,7 +139,7 @@ namespace LibKidsNoteForEveryone.Bot
                         SendResponse(message.ChatIds, message.Notification);
                         break;
                     case ResponseMessage.MessageType.GENERAL_MESSAGE:
-                        SendResponse(message.ChatIds, message.Message);
+                        SendResponse(message.ChatIds, message.Message, message.TextAttachment);
                         break;
                     default:
                         break;
@@ -259,11 +260,19 @@ namespace LibKidsNoteForEveryone.Bot
             AllNotificationsSent(notification);
         }
 
-        private void SendResponse(HashSet<long> receivers, string message)
+        private void SendResponse(HashSet<long> receivers, string message, MemoryStream textAttachment = null)
         {
             foreach (var user in receivers)
             {
-                TheClient.SendTextMessageAsync(user, message);
+                var messageTask = TheClient.SendTextMessageAsync(user, message);
+
+                if (textAttachment != null)
+                {
+                    messageTask.Wait();
+                    InputOnlineFile attachment = new InputOnlineFile(textAttachment, "attachment.txt");
+                    var attachmentTask = TheClient.SendDocumentAsync(user, attachment);
+                    attachmentTask.Wait();
+                }
             }
         }
 

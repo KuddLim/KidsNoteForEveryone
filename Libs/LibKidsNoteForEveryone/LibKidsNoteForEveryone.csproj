@@ -89,6 +89,7 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="Fundamentals\Looper.cs" />
     <Compile Include="KidsNoteChecker.cs" />
+    <Compile Include="KidsNoteContentDownloadResult.cs" />
     <Compile Include="KidsNoteNotification.cs" />
     <Compile Include="KidsNoteScheduleParameters.cs" />
     <Compile Include="KidsNoteNotifierManager.cs" />
