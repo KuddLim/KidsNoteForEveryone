@@ -16,6 +16,7 @@ namespace LibKidsNoteForEveryone.Bot
         public delegate long AdminUserChatIdDelegate();
         public delegate bool AddSubscriberDelegate(long chatId, HashSet<ContentType> exclusions);
         public delegate void AllNotificationsSentDelegate(KidsNoteNotification notification);
+        public delegate bool SendImagesAsAttachmentDelegate();
 
         private Telegram.Bot.TelegramBotClient TheClient;
         private RequestMessageQueue RequestQueue;
@@ -24,6 +25,7 @@ namespace LibKidsNoteForEveryone.Bot
         public AdminUserChatIdDelegate AdminUserChatId;
         public AddSubscriberDelegate AddSubscriber;
         public AllNotificationsSentDelegate AllNotificationsSent;
+        public SendImagesAsAttachmentDelegate SendImagesAsAttachment;
 
         public NotifierBot(string apiKey)
         {
@@ -118,9 +120,9 @@ namespace LibKidsNoteForEveryone.Bot
             ResponseQueue.Enqueue(notification);
         }
 
-        public void SendAdminMessage(ChatId receiver, string message, MemoryStream textAttachment = null)
+        public void SendAdminMessage(ChatId receiver, string message, MemoryStream htmlBody = null)
         {
-            ResponseQueue.Enqueue(new HashSet<long>() { receiver.Identifier }, message, textAttachment);
+            ResponseQueue.Enqueue(new HashSet<long>() { receiver.Identifier }, message, htmlBody);
         }
 
         // TODO: ResponseQueue 에서만 접근 가능하도록.
@@ -139,7 +141,7 @@ namespace LibKidsNoteForEveryone.Bot
                         SendResponse(message.ChatIds, message.Notification);
                         break;
                     case ResponseMessage.MessageType.GENERAL_MESSAGE:
-                        SendResponse(message.ChatIds, message.Message, message.TextAttachment);
+                        SendResponse(message.ChatIds, message.Message, message.HtmlBody);
                         break;
                     default:
                         break;
@@ -154,10 +156,12 @@ namespace LibKidsNoteForEveryone.Bot
 
         private void SendResponse(HashSet<long> receivers, KidsNoteNotification notification)
         {
+            bool imagesAsAttachment = SendImagesAsAttachment();
+
             foreach (var eachContent in notification.Contents)
             {
+                // 본문 발송.
                 string text = FormatContent(eachContent.Type, eachContent);
-                //TheClient.SendTextMessageAsync(text).Wait();
 
                 List<Task<Message>> taskList = new List<Task<Message>>();
                 foreach (var user in receivers)
@@ -180,96 +184,173 @@ namespace LibKidsNoteForEveryone.Bot
                     }
                 }
 
-                List<MemoryStream> attachmentStreams = new List<MemoryStream>();
                 //Dictionary<long, LinkedList<InputMediaPhoto>> photoAlbumPerUser = new Dictionary<long, LinkedList<InputMediaPhoto>>();
 
                 bool hasAttachment = eachContent.Attachments != null && eachContent.Attachments.Count > 0;
 
                 if (hasAttachment)
                 {
-                    taskList.Clear();
-
-                    System.Diagnostics.Trace.WriteLine(String.Format("Title : {0}", eachContent.Title));
-
-                    int no = 0;
-                    //foreach (var attach in eachContent.Attachments)
-                    for (int i = 0; i < eachContent.Attachments.Count; ++i)
+                    if (imagesAsAttachment)
                     {
-                        var attach = eachContent.Attachments[i];
-                        if (attach.Data == null)
-                        {
-                            // TODO: 관리 사용자에게 통지.
-                            attachmentStreams.Add(null);
-                        }
-                        else
-                        {
-                            if (attach.Type == AttachmentType.IMAGE)
-                            {
-                                MemoryStream ms = new MemoryStream();
-                                attach.Data.CopyTo(ms);
-                                attachmentStreams.Add(ms);
-
-                                System.Diagnostics.Trace.WriteLine(String.Format("Attachment {0} : {1}", no, attach.Name));
-                                //InputMedia media = new InputMedia(ms, String.Format("{0}_{1}", ++no, attach.Name));
-                            }
-                            else
-                            {
-                                // Telegram 으로는 Image 만 보낸다.
-                                // otherAttachments.AddLast(new InputMediaDocument(media));
-
-                                attachmentStreams.Add(null);
-                            }
-                        }
+                        SendImageAttachments(receivers, eachContent);
+                    }
+                    else
+                    {
+                        SendImageLinks(receivers, eachContent);
                     }
 
-                    List<Task<Message[]>> mediaTaskList = new List<Task<Message[]>>();
-                    foreach (var user in receivers)
-                    {
-                        LinkedList<InputMediaPhoto> photoAlbum = new LinkedList<InputMediaPhoto>();
-                        for (int i = 0; i < eachContent.Attachments.Count; ++i)
-                        {
-                            var attach = eachContent.Attachments[i];
-                            if (attachmentStreams[i] != null)
-                            {
-                                MemoryStream copied = new MemoryStream();
-                                attachmentStreams[i].Seek(0, SeekOrigin.Begin);
-                                attachmentStreams[i].CopyTo(copied);
-                                copied.Seek(0, SeekOrigin.Begin);
-                                InputMedia media = new InputMedia(copied, String.Format("{0}_{1}", ++no, attach.Name));
-                                photoAlbum.AddLast(new InputMediaPhoto(media));
-                            }
-                        }
-
-                        if (photoAlbum.Count > 0)
-                        {
-                            Task<Message[]> task = TheClient.SendMediaGroupAsync(photoAlbum, user);
-                            try
-                            {
-                                // 메시지 순서가 섞이지 않도록 모두 보내질 때까지 대기.
-                                task.Wait();
-                            }
-                            catch (Exception e)
-                            {
-                                System.Diagnostics.Trace.WriteLine(e);
-                            }
-                        }
-                    }
+                    SendVideoLinks(receivers, eachContent);
                 }
             }
 
             AllNotificationsSent(notification);
         }
 
-        private void SendResponse(HashSet<long> receivers, string message, MemoryStream textAttachment = null)
+        private void SendImageAttachments(HashSet<long> receivers, KidsNoteContent content)
+        {
+            List<MemoryStream> attachmentStreams = new List<MemoryStream>();
+
+            for (int i = 0; i < content.Attachments.Count; ++i)
+            {
+                var attach = content.Attachments[i];
+
+                if (attach.Data == null)
+                {
+                    // TODO: 관리 사용자에게 통지.
+                    // attachmentStreams.Add(null);
+                }
+                else
+                {
+                    if (attach.Type == AttachmentType.IMAGE)
+                    {
+                        MemoryStream ms = new MemoryStream();
+                        attach.Data.CopyTo(ms);
+                        attachmentStreams.Add(ms);
+                    }
+                    else if (attach.Type == AttachmentType.VIDEO)
+                    {
+                        // Video Link 로 따로 보낸다. (chrome redirect)
+                    }
+                    else
+                    {
+                        // Telegram 으로는 Image 만 보낸다.
+                        // otherAttachments.AddLast(new InputMediaDocument(media));
+
+                        attachmentStreams.Add(null);
+                    }
+                }
+            }
+
+            List<Task<Message[]>> mediaTaskList = new List<Task<Message[]>>();
+            foreach (var user in receivers)
+            {
+                LinkedList<InputMediaPhoto> photoAlbum = new LinkedList<InputMediaPhoto>();
+                for (int i = 0; i < content.Attachments.Count; ++i)
+                {
+                    var attach = content.Attachments[i];
+                    if (attachmentStreams[i] != null)
+                    {
+                        MemoryStream copied = new MemoryStream();
+                        attachmentStreams[i].Seek(0, SeekOrigin.Begin);
+                        attachmentStreams[i].CopyTo(copied);
+                        copied.Seek(0, SeekOrigin.Begin);
+                        InputMedia media = new InputMedia(copied, String.Format("{0}_{1}", i + 1, attach.Name));
+                        photoAlbum.AddLast(new InputMediaPhoto(media));
+                    }
+                }
+
+                if (photoAlbum.Count > 0)
+                {
+                    Task<Message[]> task = TheClient.SendMediaGroupAsync(photoAlbum, user);
+                    try
+                    {
+                        // 메시지 순서가 섞이지 않도록 모두 보내질 때까지 대기.
+                        task.Wait();
+                    }
+                    catch (Exception e)
+                    {
+                        System.Diagnostics.Trace.WriteLine(e);
+                    }
+                }
+            }
+        }
+
+        private void SendImageLinks(HashSet<long> receivers, KidsNoteContent content)
+        {
+            LinkedList<string> imageLinks = new LinkedList<string>();
+            foreach (var attach in content.Attachments)
+            {
+                if (attach.Type == AttachmentType.IMAGE && attach.DownloadUrl != "")
+                {
+                    imageLinks.AddLast(attach.DownloadUrl);
+                }
+            }
+
+            foreach (var user in receivers)
+            {
+                foreach (var link in imageLinks)
+                {
+                    try
+                    {
+                        string redirectLink = MakeRedirectUri(link);
+                        string message = String.Format("사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n\n{0}", link.Replace("&amp;", "&"));
+                        message += String.Format("\n\n깨끗한 사진을 보시리면 아래 링크를 클릭하세요.\n\n{0}", redirectLink);
+                        var task = TheClient.SendTextMessageAsync(user, message);
+                        task.Wait();
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+        }
+
+        private void SendVideoLinks(HashSet<long> receivers, KidsNoteContent content)
+        {
+            LinkedList<string> videoLinks = new LinkedList<string>();
+            foreach (var attach in content.Attachments)
+            {
+                if (attach.Type == AttachmentType.VIDEO && attach.DownloadUrl != "")
+                {
+                    videoLinks.AddLast(attach.DownloadUrl);
+                }
+            }
+
+            foreach (var user in receivers)
+            {
+                foreach (var link in videoLinks)
+                {
+                    try
+                    {
+                        string message = String.Format("아래 링크를 클릭하시면 동영상 재생이 됩니다.\n\n{0}", MakeRedirectUri(link));
+                        System.Diagnostics.Trace.WriteLine(message);
+                        var task = TheClient.SendTextMessageAsync(user, message);
+                        task.Wait();
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+        }
+
+        private string MakeRedirectUri(string link)
+        {
+            //return Constants.CHROME_REDIRECT_URI + Uri.EscapeUriString(link);
+
+            return Constants.CHROME_REDIRECT_URI + Uri.EscapeDataString(link.Replace("&amp;", "&").Replace("http", "googlechrome"));
+        }
+
+        private void SendResponse(HashSet<long> receivers, string message, MemoryStream htmlBody = null)
         {
             foreach (var user in receivers)
             {
                 var messageTask = TheClient.SendTextMessageAsync(user, message);
 
-                if (textAttachment != null)
+                if (htmlBody != null)
                 {
                     messageTask.Wait();
-                    InputOnlineFile attachment = new InputOnlineFile(textAttachment, "attachment.txt");
+                    InputOnlineFile attachment = new InputOnlineFile(htmlBody, "attachment.txt");
                     var attachmentTask = TheClient.SendDocumentAsync(user, attachment);
                     attachmentTask.Wait();
                 }

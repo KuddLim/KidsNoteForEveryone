@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
     {
         public delegate string GetBaseFolderIdDelegate();
         public delegate void SetBaseFolderIdDelegate(string id);
+        public delegate void UploadProgressDelegate(string progress);
 
         private static string[] Scopes = { DriveService.Scope.DriveReadonly };
         private UserCredential Credential;
@@ -27,6 +29,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
         public GetBaseFolderIdDelegate GetBaseFolderId;
         public SetBaseFolderIdDelegate SetBaseFolderId;
+        public UploadProgressDelegate UploadProgress;
 
         public Uploader(string credentialPath, string tokenPath, string childName)
         {
@@ -42,6 +45,11 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
             // FIXME
             return true;
+        }
+
+        public void Cleanup()
+        {
+
         }
 
         private string BaseFolderName()
@@ -92,7 +100,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
         {
             FilesResource.ListRequest listRequest = Service.Files.List();
             listRequest.PageSize = 10;
-            listRequest.Fields = "nextPageToken, files(id, name, mimeType)";
+            listRequest.Fields = "nextPageToken, files(id, name, mimeType, trashed)";
 
             IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute().Files;
 
@@ -103,10 +111,10 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
             string baseFolderId = FindBackupFolderId();
 
-            string query = String.Format("mimeType = 'application/vnd.google-apps.folder' and name = '{0}'", BaseFolderName());
-            listRequest.Q = "mimeType = 'application/vnd.google-apps.folder' and name = 'test_folder'";
+            string query = String.Format("mimeType = '{0}' and name = '{1}'", Constants.GOOGLE_DRIVE_MIMETYPE_FOLDER, BaseFolderName());
+            listRequest.Q = query;
             listRequest.PageSize = 10;
-            listRequest.Fields = "nextPageToken, files(id, name, originalFileName, mimeType)";
+            listRequest.Fields = "nextPageToken, files(id, name, mimeType, trashed)";
 
             files = listRequest.Execute().Files;
 
@@ -126,25 +134,36 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
         private string FindBackupFolderId()
         {
-            IList<Google.Apis.Drive.v3.Data.File> files = null;
-
-            FilesResource.ListRequest listRequest = Service.Files.List();
-            listRequest.PageSize = 10;
-            listRequest.Fields = "nextPageToken, files(id, name, originalFileName, mimeType)";
+            Google.Apis.Drive.v3.Data.File file = null;
 
             string prevFolderId = GetBaseFolderId();
             string baseFolderId = prevFolderId;
             if (baseFolderId != "")
             {
-                //string query = String.Format("mimeType = 'application/vnd.google-apps.folder' and name = '{0}'", BaseFolderName());
-                string query = String.Format("mimeType = '{0}' and id = '{1}'", Constants.GOOGLE_DRIVE_MIMETYPE_FOLDER, baseFolderId);
-                listRequest.Q  = query;
-                files = listRequest.Execute().Files;
+                FilesResource.GetRequest getRequest = Service.Files.Get(baseFolderId);
+                //getRequest.Fields = "nextPageToken, files(id, name, mimeType)";
+                getRequest.Fields = "id, name, mimeType, trashed";
 
-                if (files.Count == 0)
+                //string query = String.Format("mimeType = 'application/vnd.google-apps.folder' and name = '{0}'", BaseFolderName());
+                //string query = String.Format("mimeType = '{0}' and id = '{1}'", Constants.GOOGLE_DRIVE_MIMETYPE_FOLDER, baseFolderId);
+                //getRequest.Q  = query;
+                try
+                {
+                    file = getRequest.Execute();
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Trace.WriteLine(e);
+                }
+
+                if (file == null || file.Id == "" || file.Trashed.Value)
                 {
                     // 새로 생성해야 함.
                     baseFolderId = "";
+                }
+                else
+                {
+                    baseFolderId = file.Id;
                 }
             }
 
@@ -167,6 +186,11 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             Google.Apis.Drive.v3.Data.File folderToCreate = new Google.Apis.Drive.v3.Data.File();
             folderToCreate.MimeType = Constants.GOOGLE_DRIVE_MIMETYPE_FOLDER;
             folderToCreate.Name = name;
+            if (parentId != "")
+            {
+                folderToCreate.Parents = new List<string>();
+                folderToCreate.Parents.Add(parentId);
+            }
 
             FilesResource.CreateRequest request = Service.Files.Create(folderToCreate);
             request.Fields = "id";
@@ -175,5 +199,136 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             return created.Id;
         }
 
+        public void Backup(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        {
+            string baseFolderId = FindBackupFolderId();
+
+            Dictionary<DateTime, string> dateIdMap = new Dictionary<DateTime, string>();
+            foreach (var each in newContents)
+            {
+                foreach (var content in each.Value)
+                {
+                    if (!dateIdMap.ContainsKey(content.Date))
+                    {
+                        dateIdMap[content.Date] = FindDateFolderId(content.Date, baseFolderId);
+                    }
+
+                    Upload(content, dateIdMap[content.Date]);
+                }
+            }
+        }
+
+        public string FindDateFolderId(DateTime dt, string parentFolder)
+        {
+            string dateTimeStr = dt.ToString("yyyy-MM-dd");
+            IList<Google.Apis.Drive.v3.Data.File> files = null;
+
+            FilesResource.ListRequest listRequest = Service.Files.List();
+            listRequest.PageSize = 10;
+            listRequest.Fields = "nextPageToken, files(id, name, mimeType, trashed)";
+            string query = String.Format("mimeType = '{0}' and name = '{1}' and '{2}' in parents", Constants.GOOGLE_DRIVE_MIMETYPE_FOLDER, dateTimeStr, parentFolder);
+            listRequest.Q = query;
+
+            string dateFolderId = "";
+
+            files = listRequest.Execute().Files;
+            if (files.Count == 0 || files[0].Trashed.Value)
+            {
+                dateFolderId = CreateFolder(parentFolder, dateTimeStr);
+            }
+            else
+            {
+                dateFolderId = files[0].Id;
+            }
+
+            return dateFolderId;
+        }
+
+        private LinkedList<string> Upload(KidsNoteContent content, string dateFolderId)
+        {
+            MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(content.Content));
+            ms.Seek(0, SeekOrigin.Begin);
+
+            LinkedList<string> idList = new LinkedList<string>();
+
+            UploadProgress("Uploding text..");
+            string bodyId = UploadFile(ms, dateFolderId, "본문.txt", "본문.txt", Constants.GOOGLE_DRIVE_MIMETYPE_TEXT);
+            idList.AddLast(bodyId);
+
+            int i = 0;
+            foreach (var each in content.Attachments)
+            {
+                ++i;
+                int pos = each.DownloadUrl.LastIndexOf('.');
+                string ext = "";
+                if (pos > 0)
+                {
+                    ext = each.DownloadUrl.Substring(pos + 1);
+                    ext = ext.ToLower();
+                }
+
+                string mType = MimeType.get(ext);
+
+                /*
+                if (each.Type == AttachmentType.VIDEO)
+                {
+                    // Video 는 용량이 커서 메모리가 부족할 수 있으므로 resumable upload 한다.
+                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(each.DownloadUrl);
+                    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                    Stream videoStream = response.GetResponseStream();
+
+                    //HttpWebResponse response=
+                }
+                else
+                {
+                    each.Data.Seek(0, SeekOrigin.Begin);
+
+                    string attachName = string.Format("{0}_{1}", i.ToString("000"), each.Name);
+
+                    string message = String.Format("Uploading attachment... {0}", attachName);
+                    UploadProgress(message);
+
+                    string id = UploadFile(each.Data, dateFolderId, attachName, each.Name, mType);
+                    idList.AddLast(id);
+                }
+                */
+            }
+
+            return idList;
+        }
+
+        private string UploadFile(Stream stream, string parent, string name, string originalFileName, string mimeType)
+        {
+            Google.Apis.Drive.v3.Data.File body = new Google.Apis.Drive.v3.Data.File();
+            body.Name = name;
+            body.OriginalFilename = originalFileName;
+            body.Parents = new List<string>() { parent };
+            body.MimeType = mimeType;
+
+            FilesResource.CreateMediaUpload createRequest = Service.Files.Create(body, stream, mimeType);
+            Google.Apis.Upload.IUploadProgress progress = createRequest.Upload();
+            Google.Apis.Drive.v3.Data.File response = createRequest.ResponseBody;
+
+            return response.Id;
+        }
+
+        // https://stackoverflow.com/questions/45663027/resuming-interrupted-upload-using-google-drive-v3-c-sharp-sdk
+        private string Test(Stream stream, string parent, string name, string originalFileName, string mimeType)
+        {
+            Google.Apis.Drive.v3.Data.File body = new Google.Apis.Drive.v3.Data.File();
+            body.Name = name;
+            body.OriginalFilename = originalFileName;
+            body.Parents = new List<string>() { parent };
+            body.MimeType = mimeType;
+
+            FilesResource.CreateMediaUpload createRequest = Service.Files.Create(body, stream, mimeType);
+            //createRequest.Resume()
+            //Google.Apis.Upload.IUploadProgress progress = createRequest.Upload();
+            //Google.Apis.Drive.v3.Data.File response = createRequest.ResponseBody;
+
+            //return response.Id;
+
+            return "";
+        }
     }
 }

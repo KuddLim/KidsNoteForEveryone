@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LibKidsNoteForEveryone.GoogleDrive;
 using Quartz;
 using Quartz.Impl;
 
@@ -11,7 +12,13 @@ namespace LibKidsNoteForEveryone
 {
     public class KidsNoteNotifierManager
     {
+        public delegate void OnGetNewContentsDelegate(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents);
+        public delegate void OnUploadProgressMessageDelegate(string message);
+        public OnGetNewContentsDelegate OnGetNewContents;
+        public OnUploadProgressMessageDelegate OnUploadProgressMessage;
+
         private KidsNoteClient TheClient;
+        private Uploader TheUploader;
         private Configuration TheConfiguration;
         private FetchHistory History;
         private HashSet<ContentType> MonitoringTypes;
@@ -29,15 +36,19 @@ namespace LibKidsNoteForEveryone
             FileLogger.Singleton.WriteLog("Config path : " + SetupFilePath());
 
             LastErrorTime = DateTime.MinValue;
-
-            TheBot = new Bot.NotifierBot(TheConfiguration.TelegramBotToken);
-            TheBot.AdminUserChatId = this.AdminUserChatId;
-            TheBot.AddSubscriber = this.AddSubscriber;
-            TheBot.AllNotificationsSent = this.AllNotificationsSent;
         }
 
         public void Startup()
         {
+            if (TheBot == null)
+            {
+                TheBot = new Bot.NotifierBot(TheConfiguration.TelegramBotToken);
+                TheBot.AdminUserChatId = this.AdminUserChatId;
+                TheBot.AddSubscriber = this.AddSubscriber;
+                TheBot.AllNotificationsSent = this.AllNotificationsSent;
+                TheBot.SendImagesAsAttachment = this.SendImagesAsAttachment;
+            }
+
             var schedulerTask = StdSchedulerFactory.GetDefaultScheduler();
             schedulerTask.Wait();
             IScheduler scheduler = schedulerTask.Result;
@@ -62,6 +73,11 @@ namespace LibKidsNoteForEveryone
                 TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 종료되었습니다");
             }
             TheBot.Cleanup();
+
+            if (TheUploader != null)
+            {
+                TheUploader.Cleanup();
+            }
         }
 
         private long AdminUserChatId()
@@ -95,6 +111,11 @@ namespace LibKidsNoteForEveryone
         private void AllNotificationsSent(KidsNoteNotification notification)
         {
             UpdateLastNotifiedIds(notification.ContentType, notification.Contents);
+        }
+
+        private bool SendImagesAsAttachment()
+        {
+            return TheConfiguration.SendImageAsAttachment;
         }
 
         public void AddJob(KidsNoteScheduleParameters param)
@@ -176,13 +197,13 @@ namespace LibKidsNoteForEveryone
                     LinkedList<KidsNoteContent> newOnes = result.ContentList;
 
                     // 공지사항은 너무 많고, 아이에게 크게 중요치 않으므로 다음페이지를 가져오지는 않는다.
-                    while (eachType != ContentType.NOTICE && newOnes != null && newOnes.Count > 0 && newOnes.Last().Id > lastId)
+                    while (eachType != ContentType.NOTICE && newOnes != null && newOnes.Count > 1 && newOnes.Last().Id > lastId)
                     {
                         System.Diagnostics.Trace.WriteLine("Get next page...");
 
+                        ++page;
                         KidsNoteContentDownloadResult nextResult = TheClient.DownloadContent(eachType, lastId, page);
 
-                        ++page;
                         LinkedList<KidsNoteContent> nextOnes = nextResult.ContentList;
 
                         if (nextOnes.Count == 0)
@@ -248,9 +269,9 @@ namespace LibKidsNoteForEveryone
             History.Save(HistoryFilePath());
         }
 
-        public void DoScheduledCheck()
+        public void DoScheduledCheck(bool forceReload)
         {
-            TheConfiguration = GetConfigurationImpl(true);
+            TheConfiguration = GetConfigurationImpl(forceReload);
             History = GetHistory(true);
 
             DateTime now = DateTime.Now;
@@ -270,13 +291,50 @@ namespace LibKidsNoteForEveryone
             if (newContents != null && newContents.Count > 0)
             {
                 UpdateAndNotifyContents(newContents);
-                BackupToGoogleDrive(newContents);
+
+                if (TheConfiguration.BackupToGoogleDrive)
+                {
+                    BackupToGoogleDrive(newContents);
+                }
+
+                if (OnGetNewContents != null)
+                {
+                    OnGetNewContents(newContents);
+                }
             }
         }
 
         private void BackupToGoogleDrive(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
         {
+            if (TheUploader == null)
+            {
+                TheUploader = new Uploader(GoogleApiCredentialPath(), GoogleApiTokenFilePath(), TheConfiguration.ChildName);
+                TheUploader.GetBaseFolderId = this.GetBaseFolderId;
+                TheUploader.SetBaseFolderId = this.SetBaseFolderId;
+                TheUploader.UploadProgress = this.UploadProgress;
+                TheUploader.Startup();
+            }
 
+            TheUploader.Backup(newContents);
+        }
+
+        private string GetBaseFolderId()
+        {
+            return TheConfiguration.GoogleDriveBackupFolderId;
+        }
+
+        private void SetBaseFolderId(string id)
+        {
+            TheConfiguration.GoogleDriveBackupFolderId = id;
+            TheConfiguration.Save(SetupFilePath());
+        }
+
+        private void UploadProgress(string message)
+        {
+            if (OnUploadProgressMessage != null)
+            {
+                OnUploadProgressMessage(message);
+            }
         }
 
         private KidsNoteClient MakeNewClient()
@@ -289,15 +347,11 @@ namespace LibKidsNoteForEveryone
 
         private string SetupFilePath()
         {
-            string path = "";
+            string path = "config.json";
 
-            if (Fundamentals.Platform.IsRunningOnMono())
+            if (!Fundamentals.Platform.IsRunningOnMono())
             {
-                path = "config.json";
-            }
-            else
-            {
-                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "config.json";
+                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + path;
             }
 
             return path;
@@ -305,21 +359,45 @@ namespace LibKidsNoteForEveryone
 
         private string HistoryFilePath()
         {
-            string path = "";
+            string path = "history.json";
 
-            if (Fundamentals.Platform.IsRunningOnMono())
+            if (!Fundamentals.Platform.IsRunningOnMono())
             {
-                return "history.json";
-            }
-            else
-            {
-                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "history.json";
+                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + path;
             }
 
             return path;
         }
 
-        private Configuration GetConfiguration()
+        private string GoogleApiCredentialPath()
+        {
+#if DEBUG
+            string path = "credentials_mine_DONOT_open.json";
+#else
+            string path = "credentials.json";
+#endif
+
+            if (!Fundamentals.Platform.IsRunningOnMono())
+            {
+                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + path;
+            }
+
+            return path;
+        }
+
+        private string GoogleApiTokenFilePath()
+        {
+            string path = "token.json";
+
+            if (!Fundamentals.Platform.IsRunningOnMono())
+            {
+                path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + path;
+            }
+
+            return path;
+        }
+
+        public Configuration GetConfiguration()
         {
             return GetConfigurationImpl(false);
         }
@@ -342,8 +420,8 @@ namespace LibKidsNoteForEveryone
                 }
                 else
                 {
-                    HandleConfigurationLoadFailed();
-                    return null;
+                    TheConfiguration = new Configuration();
+                    return TheConfiguration;
                 }
             }
             catch (Exception)
@@ -435,7 +513,7 @@ namespace LibKidsNoteForEveryone
 
             Task task = Task.Run(() =>
             {
-                owner.DoScheduledCheck();
+                owner.DoScheduledCheck(true);
             });
 
             return task;

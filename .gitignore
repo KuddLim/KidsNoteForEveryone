@@ -2,6 +2,8 @@ bin/
 .vs/
 KidsNoteForEveryone/bin
 KidsNoteForEveryone/obj
+KidsNoteForEveryoneSA/bin
+KidsNoteForEveryoneSA/obj
 KidsNoteForEveryoneService/bin
 KidsNoteForEveryoneService/obj
 Libs/LibKidsNoteForEveryone/bin
@@ -9,4 +11,3 @@ Libs/LibKidsNoteForEveryone/obj
 CLITester/obj/
 Tester/obj
 packages/
-

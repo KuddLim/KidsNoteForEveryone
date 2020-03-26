@@ -14,12 +14,11 @@ namespace LibKidsNoteForEveryone.Fundamentals
         protected bool QuitRequested = false;
         private bool Pause = false;
         private int ManagedThreadId = -1;
+        private string LooperName;
 
         public Looper(string name)
         {
-            LooperThread = new Thread(this.ThreadFunc);
-
-            SetLooperName(name);
+            LooperName = name;
         }
 
         ~Looper()
@@ -40,6 +39,12 @@ namespace LibKidsNoteForEveryone.Fundamentals
 
         public void Start()
         {
+            if (LooperThread == null)
+            {
+                LooperThread = new Thread(this.ThreadFunc);
+                SetLooperName(LooperName);
+            }
+
             LooperThread.Start();
         }
 
@@ -64,6 +69,7 @@ namespace LibKidsNoteForEveryone.Fundamentals
                 LooperThread.Join();
             }
             System.Diagnostics.Trace.WriteLine(String.Format("{0} Thread {1} finished...", DateTime.Now, LooperThread.Name));
+            LooperThread = null;
         }
 
         public void Suspend()

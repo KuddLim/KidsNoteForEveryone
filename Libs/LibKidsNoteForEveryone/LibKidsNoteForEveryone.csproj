@@ -82,6 +82,7 @@
     <Compile Include="FetchHistory.cs" />
     <Compile Include="FileLogger.cs" />
     <Compile Include="Fundamentals\Platform.cs" />
+    <Compile Include="GoogleDrive\MimeType.cs" />
     <Compile Include="GoogleDrive\Uploader.cs" />
     <Compile Include="KidsNoteClient.cs" />
     <Compile Include="KidsNoteClientParser.cs" />

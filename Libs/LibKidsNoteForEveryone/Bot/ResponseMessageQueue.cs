@@ -20,15 +20,15 @@ namespace LibKidsNoteForEveryone.Bot
         public MessageType Type { get; set; }
         public HashSet<long> ChatIds;
         public string Message { get; set; }
-        public MemoryStream TextAttachment { get; set; }
+        public MemoryStream HtmlBody { get; set; }
         public KidsNoteNotification Notification { get; set; }
 
-        public ResponseMessage(HashSet<long> chatIds, string message, MemoryStream textAttachment = null)
+        public ResponseMessage(HashSet<long> chatIds, string message, MemoryStream htmlBody = null)
         {
             Type = MessageType.GENERAL_MESSAGE;
             ChatIds = chatIds;
             Message = message;
-            TextAttachment = textAttachment;
+            HtmlBody = htmlBody;
         }
 
         public ResponseMessage(HashSet<long> chatIds, KidsNoteNotification notification)
@@ -76,11 +76,11 @@ namespace LibKidsNoteForEveryone.Bot
             }
         }
 
-        public void Enqueue(HashSet<long> chatIds, string message, MemoryStream textAttachment = null)
+        public void Enqueue(HashSet<long> chatIds, string message, MemoryStream htmlBody = null)
         {
             lock (Locker)
             {
-                ResponseQueue.Enqueue(new ResponseMessage(chatIds, message, textAttachment));
+                ResponseQueue.Enqueue(new ResponseMessage(chatIds, message, htmlBody));
             }
         }
 

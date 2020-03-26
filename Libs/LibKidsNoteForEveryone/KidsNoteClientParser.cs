@@ -9,7 +9,8 @@ namespace LibKidsNoteForEveryone
 {
     public class KidsNoteClientParser
     {
-        private static Dictionary<string, string>  ConditionFileSection = new Dictionary<string, string>() { { "class", "file-section" } };
+        private static Dictionary<string, string> ConditionFileSection = new Dictionary<string, string>() { { "class", "file-section" } };
+        private static Dictionary<string, string> ConditionVideoDownloadSection = new Dictionary<string, string>() { { "class", "download-button-wrapper" } };
         private static Dictionary<string, string> ConditionFileName = new Dictionary<string, string>() { { "class", "file-name" } };
         private static Dictionary<string, string> ConditionFileDownload = new Dictionary<string, string>() { { "class", "file-download" } };
 
@@ -133,12 +134,44 @@ namespace LibKidsNoteForEveryone
                 }
             }
 
+            // TODO: 영상이 두개인 경우?
+            HtmlNode videoSection = FindNode(detail, "div", ConditionVideoDownloadSection);
+            if (videoSection != null)
+            {
+                HtmlNode aNode = FindNode(videoSection, "a", null);
+                if (aNode != null)
+                {
+                    string href = aNode.GetAttributeValue("href", "");
+                    if (href != "")
+                    {
+                        string ext = "";
+                        int pos = href.LastIndexOf('.');
+                        if (pos > 0)
+                        {
+                            ext = href.Substring(pos);
+                            KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.VIDEO, "Video" + ext, href, "");
+                            content.Attachments.Add(attach);
+                        }
+                    }
+                }
+            }
+
             HtmlNode authorNode = contentNode.SelectSingleNode("//span[@class='name']");
             if (authorNode == null)
             {
                 return null;
             }
             content.Writer = authorNode.InnerText;
+
+            HtmlNode dateNode = contentNode.SelectSingleNode("//span[@class='date']");
+            if (dateNode == null)
+            {
+                return null;
+            }
+
+            // english : Wednesday, March 18, 2020
+            // korean : 2020년 3월 18일 수요일
+            content.Date = DateTime.Parse(dateNode.InnerText);
 
             return content;
         }

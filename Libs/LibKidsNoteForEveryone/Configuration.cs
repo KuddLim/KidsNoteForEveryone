@@ -41,6 +41,14 @@ namespace LibKidsNoteForEveryone
         [JsonProperty("child_name")]
         public string ChildName { get; set; }
 
+        // 텔레그램 사진 첨부여부.
+        // True 이면 메시지로 사진을 전송하는데, 여러장을 보내는 경우 메시지 상에서 앨범처럼 보이고
+        // 스와이프도 가능하지만, 텔레그램의 데이터 크기가 커진다.
+        // False 이면 사진의 링크를 전송한다. 여러장을 보내도 각각의 링크가 따로 간다.
+        // 스와이프가 불가능한다.
+        [JsonProperty("send_image_as_attachment")]
+        public bool SendImageAsAttachment { get; set; }
+
         // 구글 드라이브 백업여부.
         [JsonProperty("backup_to_googledrive")]
         public bool BackupToGoogleDrive;

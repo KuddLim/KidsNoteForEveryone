@@ -21,6 +21,7 @@ namespace LibKidsNoteForEveryone
     public enum AttachmentType
     {
         IMAGE = 0,
+        VIDEO,
         OTHER,
     };
 

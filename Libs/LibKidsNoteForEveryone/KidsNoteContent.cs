@@ -17,6 +17,7 @@ namespace LibKidsNoteForEveryone
         public string Writer { get; set; }
         public string Content { get; set; }
         public List<Attachment> Attachments { get; set; }
+        public DateTime Date { get; set; }
 
         public class Attachment
         {
@@ -44,6 +45,7 @@ namespace LibKidsNoteForEveryone
             PageUrl = "";
             Title = "";
             Writer = "";
+            Date = DateTime.MinValue;
             Content = "";
             Attachments = new List<Attachment>();
         }

@@ -1,0 +1,95 @@
+﻿<Controls:MetroWindow x:Class="KidsNoteForEveryoneSA.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        Title="KidsNoteForEveryone" Height="521" Width="660">
+    <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="488" VerticalAlignment="Top" Width="609">
+        <TabItem Header="Operation" Controls:ControlsHelper.HeaderFontSize="15">
+            <Grid Background="#FFE5E5E5" Margin="0,0,-45,0">
+                <ListBox x:Name="listBoxLogs" HorizontalAlignment="Left" Height="164" Margin="10,284,0,0" VerticalAlignment="Top" Width="628"/>
+                <ListView x:Name="listViewContents" HorizontalAlignment="Left" Height="186" Margin="10,68,0,0" VerticalAlignment="Top" Width="628">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                <Button x:Name="buttonRun" Content="Run" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="75" Click="buttonRun_Click"/>
+                <Button x:Name="buttonStop" Content="Stop" HorizontalAlignment="Left" Margin="90,10,0,0" VerticalAlignment="Top" Width="75" Click="buttonStop_Click"/>
+                <Button x:Name="buttonFetchNow" Content="Fetch Now" HorizontalAlignment="Left" Margin="170,10,0,0" VerticalAlignment="Top" Width="75" Click="buttonFetchNow_Click"/>
+                <Label x:Name="labelNextScheduledFetch" Content="Next scheduled fetch : Not decided yet." HorizontalContentAlignment="Right" HorizontalAlignment="Left" Margin="389,10,0,0" VerticalAlignment="Top" Width="249"/>
+                <Label Content="Contents" HorizontalAlignment="Left" Margin="10,42,0,0" VerticalAlignment="Top"/>
+                <Label Content="Logs" HorizontalAlignment="Left" Margin="10,259,0,0" VerticalAlignment="Top"/>
+            </Grid>
+        </TabItem>
+        <TabItem Header="Configuration" Controls:ControlsHelper.HeaderFontSize="15">
+            <Grid Background="#FFE5E5E5" Margin="0,0,-45,0" >
+                <GroupBox Header="KidsNote Configuration" HorizontalAlignment="Left" Height="409" Margin="10,10,0,0" VerticalAlignment="Top" Width="300" >
+                </GroupBox>
+                <Label Content="KidsNote ID:" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="21,43,0,0" VerticalAlignment="Top" Width="125"/>
+                <TextBox x:Name="textKidsNoteID" HorizontalAlignment="Left" Height="26" Margin="151,43,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="150"/>
+                <Label Content="KidsNote password:" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="21,74,0,0" VerticalAlignment="Top" Width="125"/>
+                <PasswordBox x:Name="passwordKidsNotePassword" HorizontalAlignment="Left" Margin="151,74,0,0" VerticalAlignment="Top" Width="150"/>
+                <Label Content="Child name:" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="21,105,0,0" VerticalAlignment="Top" Width="125"/>
+                <TextBox x:Name="textChildName" HorizontalAlignment="Left" Height="26" Margin="151,105,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="150"/>
+                <Label Content="Fetch time :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="21,136,0,0" VerticalAlignment="Top" Width="125">
+                    <Label.ToolTip>
+                        <StackPanel>
+                            <TextBlock FontWeight="Bold"><Run Text="Fetch time (minute)"/></TextBlock>
+                            <TextBlock><Run Text="KidsNoteForEveryone fetches new articles every hour. You can speficy exact minute."/></TextBlock>
+                        </StackPanel>
+                    </Label.ToolTip>
+                </Label>
+                <ComboBox x:Name="comboFetchMinute" HorizontalAlignment="Left" Margin="151,136,0,0" VerticalAlignment="Top" Width="150"/>
+                <Label Content="Operation time :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="21,167,0,0" VerticalAlignment="Top" Width="125"/>
+                <ComboBox x:Name="comboOperationBeginHour" HorizontalAlignment="Left" Margin="151,167,0,0" VerticalAlignment="Top" Width="68" SelectionChanged="comboOperationBeginHour_SelectionChanged"/>
+                <Label Content="~" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="217,167,0,0" VerticalAlignment="Top" Width="17"/>
+                <ComboBox x:Name="comboOperationEndHour" HorizontalAlignment="Left" Margin="233,167,0,0" VerticalAlignment="Top" Width="68" SelectionChanged="comboOperationEndHour_SelectionChanged"/>
+                <CheckBox x:Name="checkBackupToGoogleDrive" Content="Backup new contents to my GoogleDrive" HorizontalAlignment="Left" Margin="52,204,0,0" VerticalAlignment="Top" Width="249"/>
+                <GroupBox Header="Telegram Bot Configuration" HorizontalAlignment="Left" Height="409" Margin="315,10,0,0" VerticalAlignment="Top" Width="323"/>
+                <Label Content="Bot token :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="315,43,0,0" VerticalAlignment="Top" Width="110">
+                    <Label.ToolTip>
+                        <StackPanel>
+                            <TextBlock FontWeight="Bold">Telegram Bot Token</TextBlock>
+                            <TextBlock>Create your Telegram Bot with BotFather. (see https://core.telegram.org/bots)</TextBlock>
+                        </StackPanel>
+                    </Label.ToolTip>
+                </Label>
+                <TextBox x:Name="textTelegramBotToken" HorizontalAlignment="Left" Height="26" Margin="425,43,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="210"/>
+                <Label Content="Admin ID :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="315,74,0,0" VerticalAlignment="Top" Width="110">
+                    <Label.ToolTip>
+                        <StackPanel>
+                            <TextBlock FontWeight="Bold"><Run Text="Administrative user ChatId"/></TextBlock>
+                            <TextBlock><Run Text="To find out your ChatId, run this application and tell something to your bot. It'll say your ChatId."/></TextBlock>
+                            <TextBlock><Run Text="Administrative user will receive all notifications and diagnostic messages."/></TextBlock>
+                        </StackPanel>
+                    </Label.ToolTip>
+                </Label>
+                <TextBox x:Name="textTelegramAdminChatId" HorizontalAlignment="Left" Height="26" Margin="425,74,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="210"/>
+                <Label Content="Moderator ID :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="315,105,0,0" VerticalAlignment="Top" Width="110">
+                    <Label.ToolTip>
+                        <StackPanel>
+                            <TextBlock FontWeight="Bold"><Run Text="Moderate user ChatId"/></TextBlock>
+                            <TextBlock><Run Text="To find out your ChatId, run this application and tell something to your bot. It'll say your ChatId."/></TextBlock>
+                            <TextBlock><Run Text="Moderative users will receive all notifications."/></TextBlock>
+                            <TextBlock><Run Text="You can add multiple ChatIds. Use comma(,) as separator."/></TextBlock>
+                        </StackPanel>
+                    </Label.ToolTip>
+                </Label>
+                <TextBox x:Name="textTelegramModeratorChatIds" HorizontalAlignment="Left" Height="26" Margin="425,105,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="210"/>
+                <Label Content="User ID :" HorizontalAlignment="Left" HorizontalContentAlignment="Right" Margin="315,136,0,0" VerticalAlignment="Top" Width="110">
+                    <Label.ToolTip>
+                        <StackPanel>
+                            <TextBlock FontWeight="Bold"><Run Text="User ChatId"/></TextBlock>
+                            <TextBlock><Run Text="ChatIds to notify Telegram messages if new content is posted on KidsNote."/></TextBlock>
+                        </StackPanel>
+                    </Label.ToolTip>
+                </Label>
+                <ComboBox x:Name="comboBoardTypes" HorizontalAlignment="Left" Margin="425,136,0,0" VerticalAlignment="Top" Width="210" SelectionChanged="comboBoardTypes_SelectionChanged"/>
+                <TextBox x:Name="textTelegramUserChatIds" HorizontalAlignment="Left" Height="26" Margin="425,167,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="210"/>
+                <Button x:Name="buttonSave" Content="Save" HorizontalAlignment="Left" Margin="560,424,0,0" VerticalAlignment="Top" Width="75" Click="buttonSave_Click"/>
+                <CheckBox x:Name="checkSendImagesAsTelegramAttachments" Content="Send images as album" HorizontalAlignment="Left" Margin="482,204,0,0" VerticalAlignment="Top" Width="153" Checked="checkSendImagesAsTelegramAttachments_Checked"/>
+            </Grid>
+        </TabItem>
+    </TabControl>
+</Controls:MetroWindow>
