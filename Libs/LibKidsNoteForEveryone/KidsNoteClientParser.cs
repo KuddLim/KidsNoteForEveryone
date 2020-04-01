@@ -144,6 +144,7 @@ namespace LibKidsNoteForEveryone
                     string href = aNode.GetAttributeValue("href", "");
                     if (href != "")
                     {
+                        href = href.Replace("&amp;", "&");
                         string ext = "";
                         int pos = href.LastIndexOf('.');
                         if (pos > 0)

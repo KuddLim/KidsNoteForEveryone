@@ -290,12 +290,13 @@ namespace LibKidsNoteForEveryone
 
             if (newContents != null && newContents.Count > 0)
             {
-                UpdateAndNotifyContents(newContents);
-
+                // 백업은 동기적으로 동작시킬 수 있어 백업부터 하고, 이후에 텔레그램 통지한다.
                 if (TheConfiguration.BackupToGoogleDrive)
                 {
                     BackupToGoogleDrive(newContents);
                 }
+
+                UpdateAndNotifyContents(newContents);
 
                 if (OnGetNewContents != null)
                 {
@@ -304,7 +305,7 @@ namespace LibKidsNoteForEveryone
             }
         }
 
-        private void BackupToGoogleDrive(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        public bool BackupToGoogleDrive(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
         {
             if (TheUploader == null)
             {
@@ -315,7 +316,7 @@ namespace LibKidsNoteForEveryone
                 TheUploader.Startup();
             }
 
-            TheUploader.Backup(newContents);
+            return TheUploader.Backup(newContents);
         }
 
         private string GetBaseFolderId()

@@ -3,6 +3,7 @@ using LibKidsNoteForEveryone.Fundamentals;
 using MahApps.Metro.Controls;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +30,8 @@ namespace KidsNoteForEveryoneSA
         private const int BaseBeginHour = 6;
         private const int BaseEndHour = 13;
         private ContentType PreviousContentType;
+        private HashSet<KeyValuePair<ContentType, ulong>> SelectedContents;
+        Dictionary<ContentType, LinkedList<KidsNoteContent>> LatestContents;
 
         public MainWindow()
         {
@@ -38,6 +41,8 @@ namespace KidsNoteForEveryoneSA
             TheManager = new KidsNoteNotifierManager(types);
             TheManager.OnGetNewContents = this.OnGetNewContents;
             TheManager.OnUploadProgressMessage = this.OnUploadProgressMessage;
+
+            SelectedContents = new HashSet<KeyValuePair<ContentType, ulong>>();
 
             InitUi();
         }
@@ -311,8 +316,37 @@ namespace KidsNoteForEveryoneSA
             TheManager.DoScheduledCheck(false);
         }
 
+        private void buttonUploadSelected_Click(object sender, RoutedEventArgs e)
+        {
+            Dictionary<ContentType, LinkedList<KidsNoteContent>> toBackup
+                = new Dictionary<ContentType, LinkedList<KidsNoteContent>>();
+
+            foreach (var each in LatestContents)
+            {
+                LinkedList<KidsNoteContent> contents = new LinkedList<KidsNoteContent>();
+                foreach (var content in each.Value)
+                {
+                    if (SelectedContents.Contains(new KeyValuePair<ContentType, ulong>(each.Key, content.Id)))
+                    {
+                        contents.AddLast(content);
+                    }
+                }
+
+                if (contents.Count != 0)
+                {
+                    toBackup[each.Key] = contents;
+                }
+            }
+
+            if (toBackup.Count != 0)
+            {
+                TheManager.BackupToGoogleDrive(toBackup);
+            }
+        }
+
         private void OnGetNewContents(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
         {
+            LatestContents = newContents;
             Dispatcher.Invoke(new Action(() => FillNewContents(newContents)));
         }
 
@@ -331,6 +365,22 @@ namespace KidsNoteForEveryoneSA
                     listViewContents.Items.Add(lvi);
                 }
             }
+        }
+
+        private void listViewContents_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            SelectedContents.Clear();
+
+            foreach (var each in listViewContents.SelectedItems)
+            {
+                KidsNoteListViewItem item = each as KidsNoteListViewItem;
+                if (item != null)
+                {
+                    SelectedContents.Add(new KeyValuePair<ContentType, ulong>(item.ContentType, item.Id));
+                }
+            }
+
+            buttonUploadSelected.IsEnabled = SelectedContents.Count != 0;
         }
     }
 }

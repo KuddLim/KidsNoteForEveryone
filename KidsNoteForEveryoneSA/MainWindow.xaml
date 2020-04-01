@@ -7,7 +7,7 @@
         <TabItem Header="Operation" Controls:ControlsHelper.HeaderFontSize="15">
             <Grid Background="#FFE5E5E5" Margin="0,0,-45,0">
                 <ListBox x:Name="listBoxLogs" HorizontalAlignment="Left" Height="164" Margin="10,284,0,0" VerticalAlignment="Top" Width="628"/>
-                <ListView x:Name="listViewContents" HorizontalAlignment="Left" Height="186" Margin="10,68,0,0" VerticalAlignment="Top" Width="628">
+                <ListView x:Name="listViewContents" HorizontalAlignment="Left" Height="186" Margin="10,68,0,0" VerticalAlignment="Top" Width="628" SelectionChanged="listViewContents_SelectionChanged">
                     <ListView.View>
                         <GridView>
                             <GridViewColumn/>
@@ -17,6 +17,7 @@
                 <Button x:Name="buttonRun" Content="Run" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="75" Click="buttonRun_Click"/>
                 <Button x:Name="buttonStop" Content="Stop" HorizontalAlignment="Left" Margin="90,10,0,0" VerticalAlignment="Top" Width="75" Click="buttonStop_Click"/>
                 <Button x:Name="buttonFetchNow" Content="Fetch Now" HorizontalAlignment="Left" Margin="170,10,0,0" VerticalAlignment="Top" Width="75" Click="buttonFetchNow_Click"/>
+                <Button x:Name="buttonUploadSelected" Content="Upload Selected" HorizontalAlignment="Left" Margin="250,10,0,0" VerticalAlignment="Top" Width="103" Click="buttonUploadSelected_Click" IsEnabled="False"/>
                 <Label x:Name="labelNextScheduledFetch" Content="Next scheduled fetch : Not decided yet." HorizontalContentAlignment="Right" HorizontalAlignment="Left" Margin="389,10,0,0" VerticalAlignment="Top" Width="249"/>
                 <Label Content="Contents" HorizontalAlignment="Left" Margin="10,42,0,0" VerticalAlignment="Top"/>
                 <Label Content="Logs" HorizontalAlignment="Left" Margin="10,259,0,0" VerticalAlignment="Top"/>

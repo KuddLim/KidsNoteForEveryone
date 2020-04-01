@@ -138,7 +138,13 @@ namespace Tester
         private string CredentialsPath()
         {
             // 프로젝트에 등록된 credentials.json
+#if DEBUG
+            string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "credentials_mine_DONOT_open.json";
+            //string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "credentials.json";
+            //string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "credentials_public.json";
+#else
             string path = AppDomain.CurrentDomain.BaseDirectory + System.IO.Path.DirectorySeparatorChar + "credentials.json";
+#endif
             return path;
         }
 

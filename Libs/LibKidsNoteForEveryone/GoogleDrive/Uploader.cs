@@ -199,7 +199,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             return created.Id;
         }
 
-        public void Backup(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        public bool Backup(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
         {
             string baseFolderId = FindBackupFolderId();
 
@@ -213,9 +213,15 @@ namespace LibKidsNoteForEveryone.GoogleDrive
                         dateIdMap[content.Date] = FindDateFolderId(content.Date, baseFolderId);
                     }
 
-                    Upload(content, dateIdMap[content.Date]);
+                    LinkedList<string> idList = Upload(content, dateIdMap[content.Date]);
+                    if (idList.Count == 0)
+                    {
+                        return false;
+                    }
                 }
             }
+
+            return true;
         }
 
         public string FindDateFolderId(DateTime dt, string parentFolder)
@@ -269,29 +275,88 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
                 string mType = MimeType.get(ext);
 
-                /*
                 if (each.Type == AttachmentType.VIDEO)
                 {
                     // Video 는 용량이 커서 메모리가 부족할 수 있으므로 resumable upload 한다.
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create(each.DownloadUrl);
                     HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                    Stream videoStream = response.GetResponseStream();
 
-                    //HttpWebResponse response=
+                    Stream videoStream = null;
+                    FileStream fileStream = null;
+                    string savedFileName = "";
+
+                    try {
+                        videoStream = response.GetResponseStream();
+
+                        savedFileName = String.Format("video.{0}", ext);
+                        fileStream = File.Create(savedFileName);
+                        byte[] buffer = new byte[1024 * 16];
+                        int bytesRead = 0;
+                        int totalBytesRead = 0;
+                        do
+                        {
+                            bytesRead = videoStream.Read(buffer, 0, buffer.Length);
+                            if (bytesRead > 0)
+                            {
+                                fileStream.Write(buffer, 0, bytesRead);
+                                totalBytesRead += bytesRead;
+                            }
+                        }
+                        while (bytesRead > 0);
+
+                        videoStream.Close();
+                        fileStream.Seek(0, SeekOrigin.Begin);
+
+                        string attachName = string.Format("{0}_{1}", i.ToString("000"), each.Name);
+                        string message = String.Format("Uploading attachment... {0}", attachName);
+                        UploadProgress(message);
+
+                        string id = UploadFile(fileStream, dateFolderId, attachName, each.Name, mType);
+                        idList.AddLast(id);
+
+                        fileStream.Close();
+                    }
+                    catch (Exception e)
+                    {
+                        System.Diagnostics.Trace.WriteLine(e);
+                        idList.Clear();
+                    }
+
+                    if (videoStream != null)
+                    {
+                        videoStream.Close();
+                    }
+                    if (response != null)
+                    {
+                        response.Close();
+                    }
+                    if (fileStream != null)
+                    {
+                        fileStream.Close();
+                    }
+                    if (System.IO.File.Exists(savedFileName))
+                    {
+                        System.IO.File.Delete(savedFileName);
+                    }
                 }
                 else
                 {
                     each.Data.Seek(0, SeekOrigin.Begin);
 
                     string attachName = string.Format("{0}_{1}", i.ToString("000"), each.Name);
-
                     string message = String.Format("Uploading attachment... {0}", attachName);
                     UploadProgress(message);
 
-                    string id = UploadFile(each.Data, dateFolderId, attachName, each.Name, mType);
-                    idList.AddLast(id);
+                    try
+                    {
+                        string id = UploadFile(each.Data, dateFolderId, attachName, each.Name, mType);
+                        idList.AddLast(id);
+                    }
+                    catch (Exception)
+                    {
+                        idList.Clear();
+                    }
                 }
-                */
             }
 
             return idList;
@@ -322,6 +387,14 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             body.MimeType = mimeType;
 
             FilesResource.CreateMediaUpload createRequest = Service.Files.Create(body, stream, mimeType);
+            Google.Apis.Upload.IUploadProgress progress = createRequest.Upload();
+            //createRequest.ContentStream
+            if (progress.Status == Google.Apis.Upload.UploadStatus.Uploading)
+            {
+                // stream 이 seekable "해야할듯..
+            }
+            //createRequest.
+
             //createRequest.Resume()
             //Google.Apis.Upload.IUploadProgress progress = createRequest.Upload();
             //Google.Apis.Drive.v3.Data.File response = createRequest.ResponseBody;
