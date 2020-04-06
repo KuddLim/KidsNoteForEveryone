@@ -55,7 +55,10 @@ namespace LibKidsNoteForEveryone
         // 구글 드라이브 백업 폴더 ID
         // 프로그램 동작중에 생성되므로 사용하자 수정해서는 안되는 값이다.
         [JsonProperty("google_drive_backup_folder_id")]
-        public string GoogleDriveBackupFolderId { get; set; }
+        private string GoogleDriveBackupFolderId { get; set; }
+        // 프로그램 동작중에 생성되므로 사용하자 수정해서는 안되는 값이다.
+        [JsonProperty("google_drive_backup_folder_id_debug")]
+        private string GoogleDriveBackupFolderIdDebug { get; set; }
 
         // 로그 사용여부 (일반적인 경우 사용하지 않아도 됨).
         [JsonProperty("use_logger")]
@@ -169,6 +172,24 @@ namespace LibKidsNoteForEveryone
             }
 
             return subscribers;
+        }
+
+        public string GetGoogleDriveBackupFolderId()
+        {
+#if DEBUG
+            return GoogleDriveBackupFolderIdDebug;
+#else
+            return GoogleDriveBackupFolderId;
+#endif
+        }
+
+        public void SetGoogleDriveBackupFolderId(string id)
+        {
+#if DEBUG
+            GoogleDriveBackupFolderIdDebug = id;
+#else
+            GoogleDriveBackupFolderId = id;
+#endif
         }
 
         static private AesCryptoServiceProvider CreateProvider(byte[] key)

@@ -16,7 +16,11 @@ namespace LibKidsNoteForEveryone
         public const string CHROME_REDIRECT_URI = "https://ydbong.com/chrome_redirect.php?url=";
 
         public const string GOOGLE_DRIVE_APPLICATION_NAME = "KidsNote Uploader";
+#if DEBUG
+        public const string GOOGLE_DRIVE_BACKUP_FOLDER_NAME = "[개발용] 키즈노트 백업";
+#else
         public const string GOOGLE_DRIVE_BACKUP_FOLDER_NAME = "키즈노트 백업";
+#endif
         public const string GOOGLE_DRIVE_MIMETYPE_FOLDER = "application/vnd.google-apps.folder";
         public const string GOOGLE_DRIVE_MIMETYPE_TEXT = "text/plain";
         public const string GOOGLE_DRIVE_MIMETYPE_JPG = "image/jpeg";

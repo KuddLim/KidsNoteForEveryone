@@ -321,12 +321,12 @@ namespace LibKidsNoteForEveryone
 
         private string GetBaseFolderId()
         {
-            return TheConfiguration.GoogleDriveBackupFolderId;
+            return TheConfiguration.GetGoogleDriveBackupFolderId();
         }
 
         private void SetBaseFolderId(string id)
         {
-            TheConfiguration.GoogleDriveBackupFolderId = id;
+            TheConfiguration.SetGoogleDriveBackupFolderId(id);
             TheConfiguration.Save(SetupFilePath());
         }
 
@@ -373,7 +373,8 @@ namespace LibKidsNoteForEveryone
         private string GoogleApiCredentialPath()
         {
 #if DEBUG
-            string path = "credentials_mine_DONOT_open.json";
+            //string path = "credentials_mine_DONOT_open.json";
+            string path = "credentials.json";
 #else
             string path = "credentials.json";
 #endif
