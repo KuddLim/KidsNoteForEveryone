@@ -252,13 +252,16 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
         private LinkedList<string> Upload(KidsNoteContent content, string dateFolderId)
         {
+            string folderName = string.Format("[{0}] {1}", content.Type, content.Id);
+            string containingFolderId = CreateFolder(dateFolderId, folderName);
+
             MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(content.Content));
             ms.Seek(0, SeekOrigin.Begin);
 
             LinkedList<string> idList = new LinkedList<string>();
 
             UploadProgress("Uploding text..");
-            string bodyId = UploadFile(ms, dateFolderId, "본문.txt", "본문.txt", Constants.GOOGLE_DRIVE_MIMETYPE_TEXT);
+            string bodyId = UploadFile(ms, containingFolderId, "본문.txt", "본문.txt", Constants.GOOGLE_DRIVE_MIMETYPE_TEXT);
             idList.AddLast(bodyId);
 
             int i = 0;
@@ -311,7 +314,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
                         string message = String.Format("Uploading attachment... {0}", attachName);
                         UploadProgress(message);
 
-                        string id = UploadFile(fileStream, dateFolderId, attachName, each.Name, mType);
+                        string id = UploadFile(fileStream, containingFolderId, attachName, each.Name, mType);
                         idList.AddLast(id);
 
                         fileStream.Close();
@@ -349,7 +352,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
                     try
                     {
-                        string id = UploadFile(each.Data, dateFolderId, attachName, each.Name, mType);
+                        string id = UploadFile(each.Data, containingFolderId, attachName, each.Name, mType);
                         idList.AddLast(id);
                     }
                     catch (Exception)
