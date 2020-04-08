@@ -199,7 +199,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             return created.Id;
         }
 
-        public bool Backup(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        public bool Backup(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents, bool encrypt)
         {
             string baseFolderId = FindBackupFolderId();
 
@@ -213,7 +213,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
                         dateIdMap[content.Date] = FindDateFolderId(content.Date, baseFolderId);
                     }
 
-                    LinkedList<string> idList = Upload(content, dateIdMap[content.Date]);
+                    LinkedList<string> idList = Upload(content, dateIdMap[content.Date], encrypt);
                     if (idList.Count == 0)
                     {
                         return false;
@@ -250,18 +250,34 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             return dateFolderId;
         }
 
-        private LinkedList<string> Upload(KidsNoteContent content, string dateFolderId)
+        private LinkedList<string> Upload(KidsNoteContent content, string dateFolderId, bool encrypt)
         {
             string folderName = string.Format("[{0}] {1}", content.Type, content.Id);
             string containingFolderId = CreateFolder(dateFolderId, folderName);
 
-            MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(content.Content));
+            MemoryStream ms = null;
+            if (encrypt)
+            {
+                byte[] plain = Encoding.UTF8.GetBytes(content.Content);
+                EncryptorChaCha chacha = new EncryptorChaCha(true, EncryptorChaCha.DefaultChaChaEncKey, EncryptorChaCha.DefaultChaChaEncNonce);
+                byte[] encrypted = new byte[EncryptorChaCha.DefaultChaChaEncNonce.Length + plain.Length];
+                Buffer.BlockCopy(chacha.Nonce, 0, encrypted, 0, chacha.Nonce.Length);
+                chacha.Process(plain, 0, plain.Length, encrypted, chacha.Nonce.Length);
+                ms = new MemoryStream(encrypted);
+            }
+            else
+            {
+                ms = new MemoryStream(Encoding.UTF8.GetBytes(content.Content));
+            }
             ms.Seek(0, SeekOrigin.Begin);
 
             LinkedList<string> idList = new LinkedList<string>();
 
             UploadProgress("Uploding text..");
-            string bodyId = UploadFile(ms, containingFolderId, "본문.txt", "본문.txt", Constants.GOOGLE_DRIVE_MIMETYPE_TEXT);
+
+            string name = encrypt ? "본문.txt.chacha" : "본문.txt";
+            // 이미 암호화 해 두었다.
+            string bodyId = UploadFile(ms, containingFolderId, name, name, Constants.GOOGLE_DRIVE_MIMETYPE_TEXT);
             idList.AddLast(bodyId);
 
             int i = 0;
@@ -276,93 +292,152 @@ namespace LibKidsNoteForEveryone.GoogleDrive
                     ext = ext.ToLower();
                 }
 
-                string mType = MimeType.get(ext);
-
-                if (each.Type == AttachmentType.VIDEO)
+                bool isVideo = each.Type == AttachmentType.VIDEO;
+                string id = isVideo ? UploadVideoAttachment(each, i, containingFolderId, ext, encrypt)
+                                    : UploadPhotoAttachment(each, i, containingFolderId, ext, encrypt);
+                if (id != null && id.Length > 0)
                 {
-                    // Video 는 용량이 커서 메모리가 부족할 수 있으므로 resumable upload 한다.
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(each.DownloadUrl);
-                    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-
-                    Stream videoStream = null;
-                    FileStream fileStream = null;
-                    string savedFileName = "";
-
-                    try {
-                        videoStream = response.GetResponseStream();
-
-                        savedFileName = String.Format("video.{0}", ext);
-                        fileStream = File.Create(savedFileName);
-                        byte[] buffer = new byte[1024 * 16];
-                        int bytesRead = 0;
-                        int totalBytesRead = 0;
-                        do
-                        {
-                            bytesRead = videoStream.Read(buffer, 0, buffer.Length);
-                            if (bytesRead > 0)
-                            {
-                                fileStream.Write(buffer, 0, bytesRead);
-                                totalBytesRead += bytesRead;
-                            }
-                        }
-                        while (bytesRead > 0);
-
-                        videoStream.Close();
-                        fileStream.Seek(0, SeekOrigin.Begin);
-
-                        string attachName = string.Format("{0}_{1}", i.ToString("000"), each.Name);
-                        string message = String.Format("Uploading attachment... {0}", attachName);
-                        UploadProgress(message);
-
-                        string id = UploadFile(fileStream, containingFolderId, attachName, each.Name, mType);
-                        idList.AddLast(id);
-
-                        fileStream.Close();
-                    }
-                    catch (Exception e)
-                    {
-                        System.Diagnostics.Trace.WriteLine(e);
-                        idList.Clear();
-                    }
-
-                    if (videoStream != null)
-                    {
-                        videoStream.Close();
-                    }
-                    if (response != null)
-                    {
-                        response.Close();
-                    }
-                    if (fileStream != null)
-                    {
-                        fileStream.Close();
-                    }
-                    if (System.IO.File.Exists(savedFileName))
-                    {
-                        System.IO.File.Delete(savedFileName);
-                    }
-                }
-                else
-                {
-                    each.Data.Seek(0, SeekOrigin.Begin);
-
-                    string attachName = string.Format("{0}_{1}", i.ToString("000"), each.Name);
-                    string message = String.Format("Uploading attachment... {0}", attachName);
-                    UploadProgress(message);
-
-                    try
-                    {
-                        string id = UploadFile(each.Data, containingFolderId, attachName, each.Name, mType);
-                        idList.AddLast(id);
-                    }
-                    catch (Exception)
-                    {
-                        idList.Clear();
-                    }
+                    idList.AddLast(id);
                 }
             }
 
             return idList;
+        }
+
+        private string UploadVideoAttachment(KidsNoteContent.Attachment attach, int index, string parentId, string ext, bool encrypt)
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(attach.DownloadUrl);
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+
+            string mType = MimeType.get(ext);
+            string id = "";
+
+            Stream videoDownloadStream = null;
+            FileStream fileStream = null;
+            string savedFileName = "";
+
+            try
+            {
+                EncryptorChaCha chacha = null;
+                if (encrypt)
+                {
+                    chacha = new EncryptorChaCha(true, EncryptorChaCha.DefaultChaChaEncKey, EncryptorChaCha.DefaultChaChaEncNonce);
+                }
+
+                videoDownloadStream = response.GetResponseStream();
+
+                savedFileName = String.Format("video.{0}", ext);
+                fileStream = File.Create(savedFileName);
+                if (chacha != null)
+                {
+                    fileStream.Write(chacha.Nonce, 0, chacha.Nonce.Length);
+                }
+
+                byte[] buffer = new byte[1024 * 16];
+                byte[] bufferEnc = new byte[buffer.Length];
+                int bytesRead = 0;
+                int totalBytesRead = 0;
+                do
+                {
+                    bytesRead = videoDownloadStream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        if (chacha != null)
+                        {
+                            chacha.Process(buffer, 0, bytesRead, bufferEnc, 0);
+                            fileStream.Write(bufferEnc, 0, bytesRead);
+                        }
+                        else
+                        {
+                            fileStream.Write(buffer, 0, bytesRead);
+                        }
+                        totalBytesRead += bytesRead;
+                    }
+                }
+                while (bytesRead > 0);
+
+                videoDownloadStream.Close();
+                fileStream.Seek(0, SeekOrigin.Begin);
+
+                string attachName = string.Format("{0}_{1}", index.ToString("000"), attach.Name);
+                string suffix = encrypt ? ".chacha" : "";
+                string message = String.Format("Uploading attachment... {0}", attachName);
+                UploadProgress(message);
+
+                id = UploadFile(fileStream, parentId, attachName + suffix, attach.Name + suffix, mType);
+
+                fileStream.Close();
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Trace.WriteLine(e);
+                id = "";
+            }
+
+            if (videoDownloadStream != null)
+            {
+                videoDownloadStream.Close();
+            }
+            if (response != null)
+            {
+                response.Close();
+            }
+            if (fileStream != null)
+            {
+                fileStream.Close();
+            }
+            if (System.IO.File.Exists(savedFileName))
+            {
+                System.IO.File.Delete(savedFileName);
+            }
+
+            return id;
+        }
+
+        private string UploadPhotoAttachment(KidsNoteContent.Attachment attach, int index, string parentId, string ext, bool encrypt)
+        {
+            attach.Data.Seek(0, SeekOrigin.Begin);
+
+            MemoryStream encryptedStream = null;
+            if (encrypt)
+            {
+                EncryptorChaCha chacha = new EncryptorChaCha(true, EncryptorChaCha.DefaultChaChaEncKey, EncryptorChaCha.DefaultChaChaEncNonce);
+                encryptedStream = new MemoryStream();
+
+                byte[] readBuffer = new byte[4096];
+                byte[] encBuffer = new byte[readBuffer.Length];
+
+                int nRead = attach.Data.Read(readBuffer, 0, readBuffer.Length);
+                encryptedStream.Write(chacha.Nonce, 0, chacha.Nonce.Length);
+                while (nRead > 0)
+                {
+                    chacha.Process(readBuffer, 0, nRead, encBuffer, 0);
+                    encryptedStream.Write(encBuffer, 0, nRead);
+                    nRead = attach.Data.Read(readBuffer, 0, readBuffer.Length);
+                }
+
+                encryptedStream.Seek(0, SeekOrigin.Begin);
+            }
+
+            string mType = MimeType.get(ext);
+            string attachName = string.Format("{0}_{1}", index.ToString("000"), attach.Name);
+            string message = String.Format("Uploading attachment... {0}", attachName);
+            UploadProgress(message);
+
+            Stream toUpload = encrypt ? encryptedStream : attach.Data;
+            string suffix = encrypt ? ".chacha" : "";
+
+            string id = "";
+            try
+            {
+                id = UploadFile(toUpload, parentId, attachName + suffix, attach.Name + suffix, mType);
+            }
+            catch (Exception)
+            {
+                id = "";
+            }
+
+            return id;
         }
 
         private string UploadFile(Stream stream, string parent, string name, string originalFileName, string mimeType)

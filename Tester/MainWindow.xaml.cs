@@ -309,7 +309,7 @@ namespace Tester
                 Conf = GetConfiguration();
             }
 
-            return Conf.GoogleDriveBackupFolderId;
+            return Conf.GetGoogleDriveBackupFolderId();
         }
 
         private void SetBaseFolderId(string id)
@@ -319,7 +319,7 @@ namespace Tester
                 Conf = GetConfiguration();
             }
 
-            Conf.GoogleDriveBackupFolderId = id;
+            Conf.SetGoogleDriveBackupFolderId(id);
             Conf.Save(SetupFilePath());
         }
     }

@@ -316,7 +316,12 @@ namespace LibKidsNoteForEveryone
                 TheUploader.Startup();
             }
 
-            return TheUploader.Backup(newContents);
+            return TheUploader.Backup(newContents, TheConfiguration.EncryptUpload);
+        }
+
+        public bool EncryptChaCha(string sourceFile, string destFile, string key)
+        {
+            return true;
         }
 
         private string GetBaseFolderId()
