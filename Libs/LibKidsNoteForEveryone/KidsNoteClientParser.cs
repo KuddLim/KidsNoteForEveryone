@@ -323,9 +323,11 @@ namespace LibKidsNoteForEveryone
 
         private string ReplaceHtmlEscapes(string text)
         {
-            return text.Replace("<br>", "\n").Replace("<br />", "\n").Replace("&quot;", "\"")
+            string escaped = text.Replace("<br>", "\n").Replace("<br />", "\n").Replace("&quot;", "\"")
                 .Replace("&amp;", "&").Replace("&lt;", "<").Replace("&gt;", ">")
                 .Replace("<p>", "").Replace("</p>", "");
+            string decoded = System.Net.WebUtility.HtmlDecode(escaped);
+            return decoded;
         }
     }
 }
