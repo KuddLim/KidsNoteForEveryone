@@ -259,10 +259,10 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             if (encrypt)
             {
                 byte[] plain = Encoding.UTF8.GetBytes(content.Content);
+                byte[] encrypted = new byte[plain.Length];
+
                 EncryptorChaCha chacha = new EncryptorChaCha(true, EncryptorChaCha.DefaultChaChaEncKey, EncryptorChaCha.DefaultChaChaEncNonce);
-                byte[] encrypted = new byte[EncryptorChaCha.DefaultChaChaEncNonce.Length + plain.Length];
-                Buffer.BlockCopy(chacha.Nonce, 0, encrypted, 0, chacha.Nonce.Length);
-                chacha.Process(plain, 0, plain.Length, encrypted, chacha.Nonce.Length);
+                chacha.Process(plain, 0, plain.Length, encrypted, 0);
                 ms = new MemoryStream(encrypted);
             }
             else
@@ -273,7 +273,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
             LinkedList<string> idList = new LinkedList<string>();
 
-            UploadProgress("Uploding text..");
+            UploadProgress(string.Format("Uploding [{0}] {1}", content.Type, content.Id));
 
             string name = encrypt ? "본문.txt.chacha" : "본문.txt";
             // 이미 암호화 해 두었다.
@@ -328,10 +328,6 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
                 savedFileName = String.Format("video.{0}", ext);
                 fileStream = File.Create(savedFileName);
-                if (chacha != null)
-                {
-                    fileStream.Write(chacha.Nonce, 0, chacha.Nonce.Length);
-                }
 
                 byte[] buffer = new byte[1024 * 16];
                 byte[] bufferEnc = new byte[buffer.Length];
@@ -408,7 +404,6 @@ namespace LibKidsNoteForEveryone.GoogleDrive
                 byte[] encBuffer = new byte[readBuffer.Length];
 
                 int nRead = attach.Data.Read(readBuffer, 0, readBuffer.Length);
-                encryptedStream.Write(chacha.Nonce, 0, chacha.Nonce.Length);
                 while (nRead > 0)
                 {
                     chacha.Process(readBuffer, 0, nRead, encBuffer, 0);
