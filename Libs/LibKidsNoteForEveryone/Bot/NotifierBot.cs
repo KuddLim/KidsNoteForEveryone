@@ -292,9 +292,9 @@ namespace LibKidsNoteForEveryone.Bot
                 {
                     try
                     {
-                        string redirectLink = MakeRedirectUri(link);
+                        string originalLink = link.Replace("&amp;", "&");
                         string message = String.Format("사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n\n{0}", link.Replace("&amp;", "&"));
-                        message += String.Format("\n\n깨끗한 사진을 보시리면 아래 링크를 클릭하세요.\n\n{0}", redirectLink);
+                        message += String.Format("\n\n깨끗한 사진을 보시리면 아래 링크를 클릭하세요.\n\n{0}", originalLink);
                         var task = TheClient.SendTextMessageAsync(user, message);
                         task.Wait();
                     }
@@ -336,8 +336,6 @@ namespace LibKidsNoteForEveryone.Bot
 
         private string MakeRedirectUri(string link)
         {
-            //return Constants.CHROME_REDIRECT_URI + Uri.EscapeUriString(link);
-
             return Constants.CHROME_REDIRECT_URI + Uri.EscapeDataString(link.Replace("&amp;", "&").Replace("http", "googlechrome"));
         }
 
