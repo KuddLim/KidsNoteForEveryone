@@ -16,7 +16,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.IO;
 using Telegram.Bot.Types;
+using Microsoft.Win32;
 
 namespace KidsNoteForEveryoneSA
 {
@@ -256,6 +258,8 @@ namespace KidsNoteForEveryoneSA
         private void AddLog(string log)
         {
             listBoxLogs.Items.Add(log);
+            listBoxLogs.SelectedItem = listBoxLogs.Items.Count - 1;
+            listBoxLogs.ScrollIntoView(listBoxLogs.SelectedItem);
         }
 
         private void buttonRun_Click(object sender, RoutedEventArgs e)
@@ -341,6 +345,117 @@ namespace KidsNoteForEveryoneSA
             if (toBackup.Count != 0)
             {
                 TheManager.BackupToGoogleDrive(toBackup);
+            }
+        }
+
+        private void buttonTestChaCha_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog dialog = new OpenFileDialog();
+            if (dialog.ShowDialog() == true)
+            {
+                FileStream inStream = new FileStream(dialog.FileName, FileMode.Open);
+
+                string encFile = dialog.FileName + ".enc";
+                string decFile = dialog.FileName + ".dec";
+                FileStream outStreamEnc = new FileStream(encFile, FileMode.Create);
+                EncryptorChaCha chacha = new EncryptorChaCha(true, EncryptorChaCha.DefaultChaChaEncKey, EncryptorChaCha.DefaultChaChaEncNonce);
+
+                byte[] readBuffer = new byte[4096];
+                byte[] outBuffer = new byte[readBuffer.Length];
+                int nRead = inStream.Read(readBuffer, 0, readBuffer.Length);
+                int offset = 0;
+                while (nRead > 0)
+                {
+                    if (offset == 0)
+                    {
+                        outStreamEnc.Write(chacha.Nonce, 0, chacha.Nonce.Length);
+                    }
+                    offset += nRead;
+                    chacha.Process(readBuffer, 0, nRead, outBuffer, 0);
+                    outStreamEnc.Write(outBuffer, 0, nRead);
+                    nRead = inStream.Read(readBuffer, 0, readBuffer.Length);
+                }
+
+                inStream.Close();
+                outStreamEnc.Close();
+
+                byte[] nonce = new byte[EncryptorChaCha.DefaultChaChaEncNonce.Length];
+
+                chacha = new EncryptorChaCha(false, EncryptorChaCha.DefaultChaChaEncKey, nonce);
+
+                inStream = new FileStream(encFile, FileMode.Open);
+                FileStream outStreamDec = new FileStream(decFile, FileMode.Create);
+
+                nRead = inStream.Read(nonce, 0, nonce.Length);
+                if (nRead > 0)
+                {
+                    nRead = inStream.Read(readBuffer, 0, readBuffer.Length);
+                    while (nRead > 0)
+                    {
+                        chacha.Process(readBuffer, 0, nRead, outBuffer, 0);
+                        outStreamDec.Write(outBuffer, 0, nRead);
+
+                        nRead = inStream.Read(readBuffer, 0, readBuffer.Length);
+                    }
+                }
+
+                inStream.Close();
+                outStreamDec.Close();
+            }
+        }
+
+        private void buttonDecrypt_Click(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+            System.Windows.Forms.DialogResult dialogResult = dialog.ShowDialog();
+
+            if (dialogResult == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+            {
+                DecryptFolder(dialog.SelectedPath);
+            }
+        }
+
+        private async Task DecryptFolder(string folder)
+        {
+            await Task.Run(() => DecryptFolderImpl(folder));
+        }
+
+        private void DecryptFolderImpl(string folder)
+        {
+            string[] files = Directory.GetFiles(folder);
+            foreach (var file in files)
+            {
+                int pos = file.IndexOf(".chacha");
+                if (pos < 0)
+                {
+                    continue;
+                }
+
+                string outFile = file.Substring(0, pos);
+
+                EncryptorChaCha chacha = new EncryptorChaCha(false, EncryptorChaCha.DefaultChaChaEncKey, EncryptorChaCha.DefaultChaChaEncNonce);
+                byte[] readBuffer = new byte[1024 * 16];
+                byte[] writeBuffer = new byte[readBuffer.Length];
+
+                FileStream inStream = new FileStream(file, FileMode.Open);
+                FileStream outStream = new FileStream(outFile, FileMode.Create);
+
+                int nBytes = inStream.Read(readBuffer, 0, readBuffer.Length);
+                while (nBytes > 0)
+                {
+                    chacha.Process(readBuffer, 0, nBytes, writeBuffer, 0);
+                    outStream.Write(writeBuffer, 0, nBytes);
+                    nBytes = inStream.Read(readBuffer, 0, readBuffer.Length);
+                }
+
+                inStream.Close();
+                outStream.Close();
+            }
+
+            string[] directories = Directory.GetDirectories(folder);
+            foreach (var dir in directories)
+            {
+                DecryptFolderImpl(dir);
             }
         }
 
