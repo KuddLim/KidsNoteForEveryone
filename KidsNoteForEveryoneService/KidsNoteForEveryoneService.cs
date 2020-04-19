@@ -92,19 +92,16 @@ namespace KidsNoteForEveryoneService
 
             if (Manager != null)
             {
-                if (!Platform.IsRunningOnMono())
-                {
-                    Status.dwCurrentState = ServiceState.SERVICE_PAUSE_PENDING;
-                    SetServiceStatus(this.ServiceHandle, ref Status);
-                }
-
+#if !MONO
+                Status.dwCurrentState = ServiceState.SERVICE_PAUSE_PENDING;
+                SetServiceStatus(this.ServiceHandle, ref Status);
+#endif
                 Manager.Cleanup();
 
-                if (!Platform.IsRunningOnMono())
-                {
-                    Status.dwCurrentState = ServiceState.SERVICE_PAUSED;
-                    SetServiceStatus(this.ServiceHandle, ref Status);
-                }
+#if !MONO
+                Status.dwCurrentState = ServiceState.SERVICE_PAUSED;
+                SetServiceStatus(this.ServiceHandle, ref Status);
+#endif
 
                 Manager = null;
             }
@@ -114,11 +111,10 @@ namespace KidsNoteForEveryoneService
         {
             if (Manager == null)
             {
-                if (!Platform.IsRunningOnMono())
-                {
-                    Status.dwCurrentState = ServiceState.SERVICE_START_PENDING;
-                    SetServiceStatus(this.ServiceHandle, ref Status);
-                }
+#if !MONO
+                Status.dwCurrentState = ServiceState.SERVICE_START_PENDING;
+                SetServiceStatus(this.ServiceHandle, ref Status);
+#endif
 
                 Manager = new KidsNoteNotifierManager(MonitoringTypes);
 
@@ -129,11 +125,10 @@ namespace KidsNoteForEveryoneService
 
                 Manager.Startup();
 
-                if (!Platform.IsRunningOnMono())
-                {
-                    Status.dwCurrentState = ServiceState.SERVICE_RUNNING;
-                    SetServiceStatus(this.ServiceHandle, ref Status);
-                }
+#if !MONO
+                Status.dwCurrentState = ServiceState.SERVICE_RUNNING;
+                SetServiceStatus(this.ServiceHandle, ref Status);
+#endif
             }
         }
     }
