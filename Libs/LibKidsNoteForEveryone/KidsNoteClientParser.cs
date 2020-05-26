@@ -86,6 +86,42 @@ namespace LibKidsNoteForEveryone
                 }
             }
 
+            HtmlNode statusSection = root.SelectSingleNode("//div[@class='status-section']");
+            if (statusSection != null)
+            {
+                foreach (var status in statusSection.ChildNodes)
+                {
+                    if (status.Name != "div")
+                    {
+                        continue;
+                    }
+
+                    HtmlNode statusName = null;
+                    HtmlNode statusValue = null;
+                    foreach (var each in status.ChildNodes)
+                    {
+                        if (each.Name != "span")
+                        {
+                            continue;
+                        }
+
+                        if (each.GetAttributeValue("class", "") == "status-name")
+                        {
+                            statusName = each;
+                        }
+                        else
+                        {
+                            statusValue = each;
+                        }
+
+                        if (statusName != null && statusValue != null)
+                        {
+                            content.StatusReport.Add(statusName.InnerText, statusValue.InnerText);
+                        }
+                    }
+                }
+            }
+
             HtmlNode detail = root.SelectSingleNode(String.Format("//div[@class='{0}-detail']", classPrefix));
             //HtmlNode fileSection = contentNode.SelectSingleNode("/div[@class='flie-section']");
             //HtmlNode fileSection = detail.SelectSingleNode("//div[@class='flie-section']");

@@ -18,6 +18,7 @@ namespace LibKidsNoteForEveryone
         public string Content { get; set; }
         public List<Attachment> Attachments { get; set; }
         public DateTime Date { get; set; }
+        public Dictionary<string, string> StatusReport;
 
         public class Attachment
         {
@@ -48,6 +49,27 @@ namespace LibKidsNoteForEveryone
             Date = DateTime.MinValue;
             Content = "";
             Attachments = new List<Attachment>();
+            StatusReport = new Dictionary<string, string>();
+        }
+
+        public string GetContentString()
+        {
+            if (StatusReport != null && StatusReport.Count > 0)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append(Content + "\n");
+
+                foreach (var each in StatusReport)
+                {
+                    sb.AppendFormat("\n{0} : {1}", each.Key, each.Value);
+                }
+
+                return sb.ToString();
+            }
+            else
+            {
+                return Content;
+            }
         }
     }
 }
