@@ -361,7 +361,7 @@ namespace LibKidsNoteForEveryone.Bot
             sb.AppendFormat("{0} [{1}]", ContentTypeConverter.ContentTypeToString(type), content.Id);
             sb.AppendFormat("\n제목 : {0}, 작성자 : {1}", content.Title, content.Writer);
             sb.Append("\n\n");
-            sb.Append(content.Content);
+            sb.Append(content.GetContentString());
 
             return sb.ToString();
         }
