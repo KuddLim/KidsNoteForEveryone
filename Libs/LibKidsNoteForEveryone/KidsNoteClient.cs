@@ -114,6 +114,7 @@ namespace LibKidsNoteForEveryone
 
             try
             {
+                WebClient.DefaultRequestHeaders.Add("Accept-Language", "ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3");
                 Task<HttpResponseMessage> getTask = WebClient.GetAsync(url);
                 getTask.Wait();
 
