@@ -1,6 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -208,7 +209,15 @@ namespace LibKidsNoteForEveryone
 
             // english : Wednesday, March 18, 2020
             // korean : 2020년 3월 18일 수요일
-            content.Date = DateTime.Parse(dateNode.InnerText);
+            try
+            {
+                CultureInfo here = new CultureInfo("ko-KR");
+                content.Date = DateTime.Parse(dateNode.InnerText, here);
+            }
+            catch (System.FormatException)
+            {
+                content.Date = DateTime.Now;
+            }
 
             return content;
         }
