@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,11 +23,33 @@ namespace LibKidsNoteForEveryone
     {
         IMAGE = 0,
         VIDEO,
+        IMAGE_MENU_MORNING_SNACK,       // 오전간식
+        IMAGE_MENU_LUNCH,               // 점심
+        IMAGE_MENU_AFTERNOON_SNACK,     // 오후간식
+        IMAGE_MENU_DINNER,              // 저녁
+        IMAGE_MENU_DEFAULT_IMAGE,       // 기본이미지
         OTHER,
     };
 
     public class ContentTypeConverter
     {
+        public static string AttachmentLunchTypeToString(AttachmentType type)
+        {
+            switch (type)
+            {
+                case AttachmentType.IMAGE_MENU_AFTERNOON_SNACK:
+                    return "오후간식";
+                case AttachmentType.IMAGE_MENU_DINNER:
+                    return "저녁";
+                case AttachmentType.IMAGE_MENU_LUNCH:
+                    return "점심";
+                case AttachmentType.IMAGE_MENU_MORNING_SNACK:
+                    return "오전간식";
+                default:
+                    return "알수없음";
+            }
+        }
+
         public static string ContentTypeToString(ContentType type)
         {
             switch (type)

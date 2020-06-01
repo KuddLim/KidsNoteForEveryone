@@ -194,6 +194,11 @@ namespace LibKidsNoteForEveryone
 
                     int page = 1;
                     KidsNoteContentDownloadResult result = TheClient.DownloadContent(eachType, lastId, page);
+                    if (result.NotNow)
+                    {
+                        continue;
+                    }
+
                     LinkedList<KidsNoteContent> newOnes = result.ContentList;
 
                     // 공지사항은 너무 많고, 아이에게 크게 중요치 않으므로 다음페이지를 가져오지는 않는다.

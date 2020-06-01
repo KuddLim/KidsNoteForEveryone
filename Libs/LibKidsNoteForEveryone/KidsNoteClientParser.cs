@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -272,6 +273,120 @@ namespace LibKidsNoteForEveryone
 
             // TODO: Next 가 있는 경우, 또는 Scroll 을 해야 하는 경우.
             return contentList;
+        }
+
+        public LinkedList<KidsNoteContent> ParseMenuTable(ContentType type, string html)
+        {
+            LinkedList<KidsNoteContent> contents = new LinkedList<KidsNoteContent>();
+
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            HtmlNode root = doc.DocumentNode;
+            HtmlNode menuBody = root.SelectSingleNode("//div[@class='menu-table-detail-body']");
+
+            DateTime now = DateTime.Now;
+            string id = now.ToString("yyyyMMdd");
+
+            KidsNoteContent content = new KidsNoteContent(type);
+            content.Date = new DateTime(now.Year, now.Month, now.Day);
+            content.Id = ulong.Parse(id);
+
+            foreach (var each in menuBody.ChildNodes)
+            {
+                if (each.Name != "div")
+                {
+                    continue;
+                }
+
+                KidsNoteContent.Attachment attach = ParseMenuTableItem(each);
+                if (attach == null)
+                {
+                    return null;
+                }
+
+                if (attach.Type != AttachmentType.IMAGE_MENU_DEFAULT_IMAGE)
+                {
+                    content.Attachments.Add(attach);
+                }
+            }
+
+            contents.AddLast(content);
+
+            return contents;
+        }
+
+        private KidsNoteContent.Attachment ParseMenuTableItem(HtmlNode node)
+        {
+            KidsNoteContent.Attachment attach = null;
+
+            HtmlNode mealType = FindNode(node, "h5", null);
+            if (mealType == null)
+            {
+                return null;
+            }
+
+            string mealTypeStr = mealType.InnerText;
+
+            foreach (var each in node.ChildNodes)
+            {
+                if (each.Name != "div")
+                {
+                    continue;
+                }
+
+                string cls = each.GetAttributeValue("class", "");
+                string dataIndex = each.GetAttributeValue("data-index", "");
+
+                AttachmentType type = dataIndex == "0" ? AttachmentType.IMAGE_MENU_MORNING_SNACK
+                    : dataIndex == "1" ? AttachmentType.IMAGE_MENU_LUNCH
+                    : dataIndex == "2" ? AttachmentType.IMAGE_MENU_AFTERNOON_SNACK
+                    : dataIndex == "3" ? AttachmentType.IMAGE_MENU_DINNER
+                    : AttachmentType.IMAGE_MENU_DEFAULT_IMAGE;
+
+                if (cls == "card-body")
+                {
+                    HtmlNode aNode = FindNode(each, "a", null);
+                    if (aNode == null)
+                    {
+                        return null;
+                    }
+
+                    string href = aNode.GetAttributeValue("href", "");
+                    if (href == null)
+                    {
+                        return null;
+                    }
+
+                    int pos = href.LastIndexOf(".");
+                    if (pos < 0)
+                    {
+                        return null;
+                    }
+
+                    string hrefExt = href.Substring(pos);
+
+                    if (href.IndexOf("menu_lunch_img.png") > 0 || href.IndexOf("menu_afternoon_img.png") > 0)
+                    {
+                        attach = new KidsNoteContent.Attachment(AttachmentType.IMAGE_MENU_DEFAULT_IMAGE);
+                        return attach;
+                    }
+                    else
+                    {
+                        attach = new KidsNoteContent.Attachment(type, mealTypeStr + hrefExt, href, href);
+                    }
+                }
+                else if (cls == "card-footer")
+                {
+                    HtmlNode pNode = FindNode(each, "p", null);
+                    if (pNode != null && attach != null)
+                    {
+                        attach.Description = pNode.InnerText;
+                    }
+                }
+            }
+
+            return attach;
         }
 
         public bool IsRoleSelectionPage(string html)

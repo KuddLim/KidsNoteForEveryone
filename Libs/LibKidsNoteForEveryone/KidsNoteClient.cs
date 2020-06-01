@@ -147,6 +147,23 @@ namespace LibKidsNoteForEveryone
         {
             KidsNoteContentDownloadResult result = new KidsNoteContentDownloadResult();
 
+#if !DEBUG
+            // 식단표는 아이가 실제로 먹은 경우에만 업데이트되는 듯 하다.
+            // 마지막 cron 작업때 기준으로 체크한다.
+            if (type == ContentType.MENUTABLE)
+            {
+                Configuration conf = GetCurrentConfiguration();
+                int endHour = conf.OperationHourEnd != 0 ? conf.OperationHourEnd : 20;
+
+                DateTime now = DateTime.Now;
+                if (now.Hour < endHour)
+                {
+                    result.NotNow = true;
+                    return result;
+                }
+            }
+#endif
+
             string url = ContentTypeUrl(type);
             if (url == "")
             {
@@ -160,11 +177,12 @@ namespace LibKidsNoteForEveryone
             }
 
             KidsNoteClientResponse response = DownloadPage(Constants.KIDSNOTE_URL);
+
             if (!LoggedIn && response != null && IsLoginPage(response.Html))
             {
                 KidsNoteClientResponse loginResult = Login(response.Html);
                 LoggedIn = (loginResult.Response.StatusCode == HttpStatusCode.Found ||
-                                loginResult.Response.StatusCode == HttpStatusCode.OK);
+                            loginResult.Response.StatusCode == HttpStatusCode.OK);
             }
 
             if (!LoggedIn)
@@ -196,7 +214,16 @@ namespace LibKidsNoteForEveryone
                 result.Html = downLoadResult.Html;
 
                 string prefix = CssClassPrefix(type);
-                result.ContentList = Parser.ParseArticleList(type, downLoadResult.Html, prefix);
+
+                if (type == ContentType.MENUTABLE)
+                {
+                    // 식단표는 목록구성 없이 당일 데이터만 수집한다.
+                    result.ContentList = Parser.ParseMenuTable(type, downLoadResult.Html);
+                }
+                else
+                {
+                    result.ContentList = Parser.ParseArticleList(type, downLoadResult.Html, prefix);
+                }
 
                 if (result.ContentList == null)
                 {
@@ -218,52 +245,13 @@ namespace LibKidsNoteForEveryone
 
                 foreach (var each in result.ContentList)
                 {
-                    KidsNoteClientResponse eachResp = DownloadPage(each.OriginalPageUrl);
-                    if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
+                    if (each.Type == ContentType.MENUTABLE)
                     {
-                        result.Html = eachResp.Html;
-
-                        if (!RoleSelected && Parser.IsRoleSelectionPage(eachResp.Html))
+                        foreach (var content in result.ContentList)
                         {
-                            RoleSelected = true;
-                            string csrfMiddlewareToken = Parser.GetCsrfMiddlewareToken(eachResp.Html);
-
-                            string next = each.OriginalPageUrl.Substring(Constants.KIDSNOTE_URL.Length);
-                            FormUrlEncodedContent content = new FormUrlEncodedContent(new[]
+                            foreach (var attach in content.Attachments)
                             {
-                                new KeyValuePair<string, string>("csrfmiddlewaretoken", csrfMiddlewareToken),
-                                new KeyValuePair<string, string>("nickname", "father"),
-                                new KeyValuePair<string, string>("next", next)
-                            }); ;
-
-                            KidsNoteClientResponse roleResp = PostData(Constants.KIDSNOTE_ROLE_POST_URL, content);
-                            if (roleResp.Response.StatusCode != HttpStatusCode.OK)
-                            {
-                                result.Description = "Role 설정 실패";
-                                return result;
-                            }
-                        }
-
-                        // Get Again
-                        eachResp = DownloadPage(each.PageUrl);
-                        if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
-                        {
-                            Parser.ParseContent(each, eachResp.Html, prefix);
-                        }
-
-                        foreach (var attach in each.Attachments)
-                        {
-                            KidsNoteClientResponse resp = DownloadPage(attach.DownloadUrl, true);
-                            if (resp.Response.StatusCode == HttpStatusCode.OK)
-                            {
-                                attach.Data = resp.Binary;
-                            }
-                            else if (attach.ImageSource != "")
-                            {
-                                // URL 원문이 한글로 되어 있으면 다운로드가 안되는 듯 하다.
-                                // KidsNote 웹서버 (nginx) 문제인지, 키즈노트 서비스 문제인지는 불확실.
-                                // 이 경우 img 태그의 src 로 받아본다.
-                                resp = DownloadPage(attach.ImageSource, true);
+                                KidsNoteClientResponse resp = DownloadPage(attach.DownloadUrl, true);
                                 if (resp.Response.StatusCode == HttpStatusCode.OK)
                                 {
                                     attach.Data = resp.Binary;
@@ -273,9 +261,69 @@ namespace LibKidsNoteForEveryone
                                     result.Description = "Download 실패 : 첨부 이미지 다운로드 실패";
                                 }
                             }
-                            else
+                        }
+                    }
+                    else
+                    {
+                        KidsNoteClientResponse eachResp = DownloadPage(each.OriginalPageUrl);
+                        if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
+                        {
+                            result.Html = eachResp.Html;
+
+                            if (!RoleSelected && Parser.IsRoleSelectionPage(eachResp.Html))
                             {
-                                result.Description = "Download 실패 : 코드 OK 아님";
+                                RoleSelected = true;
+                                string csrfMiddlewareToken = Parser.GetCsrfMiddlewareToken(eachResp.Html);
+
+                                string next = each.OriginalPageUrl.Substring(Constants.KIDSNOTE_URL.Length);
+                                FormUrlEncodedContent content = new FormUrlEncodedContent(new[]
+                                {
+                                new KeyValuePair<string, string>("csrfmiddlewaretoken", csrfMiddlewareToken),
+                                new KeyValuePair<string, string>("nickname", "father"),
+                                new KeyValuePair<string, string>("next", next)
+                            }); ;
+
+                                KidsNoteClientResponse roleResp = PostData(Constants.KIDSNOTE_ROLE_POST_URL, content);
+                                if (roleResp.Response.StatusCode != HttpStatusCode.OK)
+                                {
+                                    result.Description = "Role 설정 실패";
+                                    return result;
+                                }
+                            }
+
+                            // Get Again
+                            eachResp = DownloadPage(each.PageUrl);
+                            if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
+                            {
+                                Parser.ParseContent(each, eachResp.Html, prefix);
+                            }
+
+                            foreach (var attach in each.Attachments)
+                            {
+                                KidsNoteClientResponse resp = DownloadPage(attach.DownloadUrl, true);
+                                if (resp.Response.StatusCode == HttpStatusCode.OK)
+                                {
+                                    attach.Data = resp.Binary;
+                                }
+                                else if (attach.ImageSource != "")
+                                {
+                                    // URL 원문이 한글로 되어 있으면 다운로드가 안되는 듯 하다.
+                                    // KidsNote 웹서버 (nginx) 문제인지, 키즈노트 서비스 문제인지는 불확실.
+                                    // 이 경우 img 태그의 src 로 받아본다.
+                                    resp = DownloadPage(attach.ImageSource, true);
+                                    if (resp.Response.StatusCode == HttpStatusCode.OK)
+                                    {
+                                        attach.Data = resp.Binary;
+                                    }
+                                    else
+                                    {
+                                        result.Description = "Download 실패 : 첨부 이미지 다운로드 실패";
+                                    }
+                                }
+                                else
+                                {
+                                    result.Description = "Download 실패 : 코드 OK 아님";
+                                }
                             }
                         }
                     }

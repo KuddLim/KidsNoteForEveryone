@@ -55,7 +55,8 @@ namespace KidsNoteForEveryoneService
             InitializeComponent();
 
             MonitoringTypes = new HashSet<ContentType>() {
-                ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM
+                ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM,
+                ContentType.MENUTABLE,
             };
         }
 

@@ -221,7 +221,7 @@ namespace LibKidsNoteForEveryone.Bot
                 }
                 else
                 {
-                    if (attach.Type == AttachmentType.IMAGE)
+                    if (IsImageAttachment(attach))
                     {
                         MemoryStream ms = new MemoryStream();
                         attach.Data.CopyTo(ms);
@@ -275,12 +275,21 @@ namespace LibKidsNoteForEveryone.Bot
             }
         }
 
+        private bool IsImageAttachment(KidsNoteContent.Attachment attach)
+        {
+            return attach.Type == AttachmentType.IMAGE ||
+                   attach.Type == AttachmentType.IMAGE_MENU_AFTERNOON_SNACK ||
+                   attach.Type == AttachmentType.IMAGE_MENU_DINNER ||
+                   attach.Type == AttachmentType.IMAGE_MENU_LUNCH ||
+                   attach.Type == AttachmentType.IMAGE_MENU_MORNING_SNACK;
+        }
+
         private void SendImageLinks(HashSet<long> receivers, KidsNoteContent content)
         {
             LinkedList<string> imageLinks = new LinkedList<string>();
             foreach (var attach in content.Attachments)
             {
-                if (attach.Type == AttachmentType.IMAGE && attach.DownloadUrl != "")
+                if (IsImageAttachment(attach) && attach.DownloadUrl != "")
                 {
                     imageLinks.AddLast(attach.DownloadUrl);
                 }
@@ -288,18 +297,43 @@ namespace LibKidsNoteForEveryone.Bot
 
             foreach (var user in receivers)
             {
-                foreach (var link in imageLinks)
+                foreach (var attach in content.Attachments)
                 {
-                    try
+                    if (IsImageAttachment(attach) && attach.DownloadUrl != "")
                     {
-                        string originalLink = link.Replace("&amp;", "&");
-                        string message = String.Format("사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n\n{0}", link.Replace("&amp;", "&"));
-                        message += String.Format("\n\n깨끗한 사진을 보시리면 아래 링크를 클릭하세요.\n\n{0}", originalLink);
-                        var task = TheClient.SendTextMessageAsync(user, message);
-                        task.Wait();
-                    }
-                    catch (Exception)
-                    {
+                        // 일반 이미지
+                        if (attach.Type == AttachmentType.IMAGE)
+                        {
+                            try
+                            {
+                                string link = attach.DownloadUrl;
+                                string originalLink = link.Replace("&amp;", "&");
+                                string message = String.Format("사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n\n{0}", link);
+                                message += String.Format("\n\n깨끗한 사진을 보시리면 아래 링크를 클릭하세요.\n\n{0}", originalLink);
+                                var task = TheClient.SendTextMessageAsync(user, message);
+                                task.Wait();
+                            }
+                            catch (Exception)
+                            {
+                            }
+                        }
+                        else // 식단표
+                        {
+                            try
+                            {
+                                string menuType = ContentTypeConverter.AttachmentLunchTypeToString(attach.Type);
+
+                                StringBuilder sb = new StringBuilder();
+                                sb.AppendFormat("{0} : {1}\n\n", menuType, attach.Description);
+                                sb.Append(attach.DownloadUrl);
+
+                                var task = TheClient.SendTextMessageAsync(user, sb.ToString());
+                                task.Wait();
+                            }
+                            catch (Exception)
+                            {
+                            }
+                        }
                     }
                 }
             }

@@ -28,6 +28,7 @@ namespace LibKidsNoteForEveryone
             public string DownloadUrl { get; set; }
             //public byte[] Data { get; set; }
             public Stream Data { get; set; }
+            public string Description { get; set; }
 
             public Attachment(AttachmentType type, string name = "", string url = "", string imageSource = "")
             {
@@ -35,6 +36,7 @@ namespace LibKidsNoteForEveryone
                 Name = name;
                 DownloadUrl = url;
                 ImageSource = imageSource;
+                Description = "";
             }
         }
 
@@ -55,10 +57,18 @@ namespace LibKidsNoteForEveryone
         public string FormatContent()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("{0} [{1}]", ContentTypeConverter.ContentTypeToString(Type), Id);
-            sb.AppendFormat("\n제목 : {0}, 작성자 : {1}", Title, Writer);
-            sb.Append("\n\n");
-            sb.Append(GetContentString());
+
+            if (Type == ContentType.MENUTABLE)
+            {
+                sb.AppendFormat("{0} 식단표", DateTime.Now);
+            }
+            else
+            {
+                sb.AppendFormat("{0} [{1}]", ContentTypeConverter.ContentTypeToString(Type), Id);
+                sb.AppendFormat("\n제목 : {0}, 작성자 : {1}", Title, Writer);
+                sb.Append("\n\n");
+                sb.Append(GetContentString());
+            }
 
             return sb.ToString();
         }
