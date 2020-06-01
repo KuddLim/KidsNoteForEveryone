@@ -161,7 +161,7 @@ namespace LibKidsNoteForEveryone.Bot
             foreach (var eachContent in notification.Contents)
             {
                 // 본문 발송.
-                string text = FormatContent(eachContent.Type, eachContent);
+                string text = eachContent.FormatContent();
 
                 List<Task<Message>> taskList = new List<Task<Message>>();
                 foreach (var user in receivers)
@@ -353,17 +353,6 @@ namespace LibKidsNoteForEveryone.Bot
                     attachmentTask.Wait();
                 }
             }
-        }
-
-        private string FormatContent(ContentType type, KidsNoteContent content)
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("{0} [{1}]", ContentTypeConverter.ContentTypeToString(type), content.Id);
-            sb.AppendFormat("\n제목 : {0}, 작성자 : {1}", content.Title, content.Writer);
-            sb.Append("\n\n");
-            sb.Append(content.GetContentString());
-
-            return sb.ToString();
         }
 
         #region 텔레그램 Delegate

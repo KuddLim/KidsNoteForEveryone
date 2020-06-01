@@ -52,6 +52,17 @@ namespace LibKidsNoteForEveryone
             StatusReport = new Dictionary<string, string>();
         }
 
+        public string FormatContent()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendFormat("{0} [{1}]", ContentTypeConverter.ContentTypeToString(Type), Id);
+            sb.AppendFormat("\n제목 : {0}, 작성자 : {1}", Title, Writer);
+            sb.Append("\n\n");
+            sb.Append(GetContentString());
+
+            return sb.ToString();
+        }
+
         public string GetContentString()
         {
             if (StatusReport != null && StatusReport.Count > 0)

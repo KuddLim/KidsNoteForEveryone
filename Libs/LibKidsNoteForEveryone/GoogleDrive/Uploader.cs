@@ -258,7 +258,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             MemoryStream ms = null;
             if (encrypt)
             {
-                byte[] plain = Encoding.UTF8.GetBytes(content.GetContentString());
+                byte[] plain = Encoding.UTF8.GetBytes(content.FormatContent());
                 byte[] encrypted = new byte[plain.Length];
 
                 EncryptorChaCha chacha = new EncryptorChaCha(true, EncryptorChaCha.DefaultChaChaEncKey, EncryptorChaCha.DefaultChaChaEncNonce);
@@ -267,7 +267,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             }
             else
             {
-                ms = new MemoryStream(Encoding.UTF8.GetBytes(content.GetContentString()));
+                ms = new MemoryStream(Encoding.UTF8.GetBytes(content.FormatContent()));
             }
             ms.Seek(0, SeekOrigin.Begin);
 
