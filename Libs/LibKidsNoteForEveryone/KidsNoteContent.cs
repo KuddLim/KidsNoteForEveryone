@@ -60,7 +60,13 @@ namespace LibKidsNoteForEveryone
 
             if (Type == ContentType.MENUTABLE)
             {
-                sb.AppendFormat("{0} 식단표", DateTime.Now);
+                sb.AppendFormat("{0} 식단표\n", DateTime.Now);
+
+                foreach (var attach in Attachments)
+                {
+                    string menuType = ContentTypeConverter.AttachmentLunchTypeToString(attach.Type);
+                    sb.AppendFormat("\n{0} : {1}", menuType, attach.Description);
+                }
             }
             else
             {

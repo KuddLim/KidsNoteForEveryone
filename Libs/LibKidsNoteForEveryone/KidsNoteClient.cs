@@ -148,7 +148,7 @@ namespace LibKidsNoteForEveryone
             KidsNoteContentDownloadResult result = new KidsNoteContentDownloadResult();
 
 #if !DEBUG
-            // 식단표는 아이가 실제로 먹은 경우에만 업데이트되는 듯 하다.
+            // 식단표는 섭취 여부는 상관없이 음식이 만들어지고 나서 업데이트 되는 것으로 보인다.
             // 마지막 cron 작업때 기준으로 체크한다.
             if (type == ContentType.MENUTABLE)
             {
