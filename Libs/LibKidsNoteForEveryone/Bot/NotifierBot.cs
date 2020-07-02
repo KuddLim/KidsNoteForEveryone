@@ -306,8 +306,8 @@ namespace LibKidsNoteForEveryone.Bot
                         {
                             try
                             {
-                                string link = attach.DownloadUrl;
-                                string originalLink = link.Replace("&amp;", "&");
+                                string link = attach.DownloadUrl.IndexOf("%") >= 0 ? attach.ImageSource : attach.DownloadUrl;
+                                string originalLink = attach.DownloadUrl.Replace("&amp;", "&");
                                 string message = String.Format("사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n\n{0}", link);
                                 message += String.Format("\n\n깨끗한 사진을 보시리면 아래 링크를 클릭하세요.\n\n{0}", originalLink);
                                 var task = TheClient.SendTextMessageAsync(user, message);
