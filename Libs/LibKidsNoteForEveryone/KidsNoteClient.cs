@@ -296,7 +296,9 @@ namespace LibKidsNoteForEveryone
                             if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
                             {
                                 Parser.ParseContent(each, eachResp.Html, prefix);
-                                if (type != ContentType.MENUTABLE && (each.Content.Length == 0 || each.Title.Length == 0))
+                                bool hasNoContent = each.Title.Length == 0 ||
+                                    (each.Content.Length == 0 && each.Attachments.Count == 0);
+                                if (type != ContentType.MENUTABLE && hasNoContent)
                                 {
                                     result.Description = "본문/제목 Parse 실패";
                                     return result;
