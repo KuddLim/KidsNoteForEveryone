@@ -289,9 +289,9 @@ namespace LibKidsNoteForEveryone.Bot
             LinkedList<string> imageLinks = new LinkedList<string>();
             foreach (var attach in content.Attachments)
             {
-                if (IsImageAttachment(attach) && attach.DownloadUrl != "")
+                if (IsImageAttachment(attach) && attach.ImageSource!= "")
                 {
-                    imageLinks.AddLast(attach.DownloadUrl);
+                    imageLinks.AddLast(attach.ImageSource);
                 }
             }
 

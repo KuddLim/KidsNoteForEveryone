@@ -68,6 +68,8 @@ namespace LibKidsNoteForEveryone
                         string href = aNode.GetAttributeValue("href", "");
                         string dataDownload = aNode.GetAttributeValue("data-download", "");
 
+                        dataDownload = dataDownload.Replace("&amp;", "&");
+
                         KidsNoteContent.Attachment attachment = null;
                         if (href != "" && dataDownload != "")
                         {
