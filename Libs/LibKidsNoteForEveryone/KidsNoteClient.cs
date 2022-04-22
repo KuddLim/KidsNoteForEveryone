@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -37,6 +38,10 @@ namespace LibKidsNoteForEveryone
         private CookieContainer Cookies;
         private bool LoggedIn;
         private bool RoleSelected;
+        private KidsNoteUserInfo UserInfo;
+        private int ActiveChildId;
+        private int ActiveCenterId;
+        private int ActiveClassId;
 
         private enum LoginStage
         {
@@ -55,59 +60,60 @@ namespace LibKidsNoteForEveryone
             WebClient = new HttpClient(WebClientHandler);
             LoggedIn = false;
             RoleSelected = false;
-        }
 
-        private string ContentTypeUrl(ContentType type)
+            ActiveChildId = -1;
+            ActiveCenterId = -1;
+            ActiveClassId = -1;
+    }
+
+        private string ContentTypeUrl(ContentType type, int childId, int centerId, int classId, string pageToken)
         {
+            // https://www.kidsnote.com/api/v1_2/children/2346060/reports/?page_size=12&tz=Asia%2FSeoul&center_id=58663&cls=480289&child=2346060
+            // https://www.kidsnote.com/api/v1_2/children/2346060/reports/?page=cD0yMDIyLTA0LTEyKzA3JTNBMDAlM0EwMC4xNTEzNDklMkIwMCUzQTAw&page_size=12&tz=Asia/Seoul&center_id=58663&cls=480289&child=2346060
+            // https://www.kidsnote.com/api/v1/centers/58663/notices?cls=480289&page_size=12
+            // https://www.kidsnote.com/api/v1_2/children/2346060/albums/?tz=Asia%2FSeoul&page_size=12&center=58663&cls=480289&child=2346060
+            // https://www.kidsnote.com/api/v1/centers/58663/menu?page_size=1000&month_menu=2022-04
+            // https://www.kidsnote.com/api/v1/centers/58663/calendar?cls=480289&month_event=2022-04
+            // https://www.kidsnote.com/api/v1_2/centers/58663/medications?page_size=12&cls=480289&child=2346060
+
+            DateTime now = DateTime.Now;
+
+            string page = "";
+            if (pageToken != null && pageToken != "")
+            {
+                page = String.Format("&page={0}", pageToken);
+            }
+
             switch (type)
             {
                 case ContentType.REPORT:
-                    return Constants.KIDSNOTE_URL + "/reports/";
+                    return String.Format("{0}/api/v1_2/children/2346060/reports/?page_size=12&tz=Asia%2FSeoul&center_id={1}&cls={2}&child={3}{4}",
+                                            Constants.KIDSNOTE_URL, centerId, classId, childId, page);
                 case ContentType.NOTICE:
-                    return Constants.KIDSNOTE_URL + "/notices/";
+                    return String.Format("{0}/api/v1/centers/{1}/notices?cls={2}&page_size=12{3}",
+                                         Constants.KIDSNOTE_URL, centerId, classId, page);
                 case ContentType.ALBUM:
-                    return Constants.KIDSNOTE_URL + "/albums/";
+                    return String.Format("{0}/api/v1_2/children/{1}/albums/?tz=Asia%2FSeoul&page_size=12&center={2}&cls={3}&child={1}{4}",
+                                          Constants.KIDSNOTE_URL, childId, centerId, classId, page);
                 case ContentType.CALENDAR:
-                    return Constants.KIDSNOTE_URL + "/calendars/";
+                    return String.Format("{0}/api/v1/centers/{1}/calendar?cls={2}&month_event={3}{4}",
+                                         Constants.KIDSNOTE_URL, centerId, classId, now.ToString("yyyy-MM"), page);
                 case ContentType.MENUTABLE:
-                    return Constants.KIDSNOTE_URL + "/menus/";
+                    return String.Format("{0}/api/v1/centers/{1}/menu?page_size=1000&month_menu={2}{3}",
+                                         Constants.KIDSNOTE_URL, centerId, now.ToString("yyyy-MM"), page);
                 case ContentType.MEDS_REQUEST:
-                    return Constants.KIDSNOTE_URL + "/medication-requests/";
+                    //return Constants.KIDSNOTE_URL + "/medication-requests/";
+                    return String.Format("{0}/api/v1_2/centers/{1}/medications?page_size=12&cls={2}&child={3}{4}",
+                                         Constants.KIDSNOTE_URL, centerId, classId, childId, page);
                 case ContentType.RETURN_HOME_NOTICE:
-                    return Constants.KIDSNOTE_URL + "/return-home-notices/";
+                    // 귀가동의서가 사라졌다.
+                    //return Constants.KIDSNOTE_URL + "/return-home-notices/";
                 default:
                     break;
             }
 
             return "";
         }
-
-        private string CssClassPrefix(ContentType type)
-        {
-            switch (type)
-            {
-                case ContentType.REPORT:
-                    return "report";
-                case ContentType.NOTICE:
-                    return "notice";
-                case ContentType.ALBUM:
-                    return "album";
-                //case ContentType.CALENDAR:
-                //    return "calendars";
-                //case ContentType.MENUTABLE:
-                //    return "menus";
-                case ContentType.MEDS_REQUEST:
-                    return "medication";
-                case ContentType.RETURN_HOME_NOTICE:
-                    return "return-home";
-                default:
-                    break;
-            }
-
-            return "";
-        }
-
-
         private KidsNoteClientResponse DownloadPage(string url, bool asBinary = false)
         {
             KidsNoteClientResponse info = null;
@@ -143,7 +149,7 @@ namespace LibKidsNoteForEveryone
             return info;
         }
 
-        public KidsNoteContentDownloadResult DownloadContent(ContentType type, UInt64 lastContentId, int page = 1)
+        public KidsNoteContentDownloadResult DownloadContent(ContentType type, UInt64 lastContentId, string pageToken)
         {
             KidsNoteContentDownloadResult result = new KidsNoteContentDownloadResult();
 
@@ -164,18 +170,6 @@ namespace LibKidsNoteForEveryone
             }
 #endif
 
-            string url = ContentTypeUrl(type);
-            if (url == "")
-            {
-                result.Description = "URL 을 알 수 없음";
-                return result;
-            }
-
-            if (page > 1)
-            {
-                url += String.Format("?page={0}", page);
-            }
-
             KidsNoteClientResponse response = DownloadPage(Constants.KIDSNOTE_URL);
 
             if (!LoggedIn && response != null && IsLoginPage(response.Html))
@@ -195,34 +189,64 @@ namespace LibKidsNoteForEveryone
                 return result;
             }
 
+            if (UserInfo == null)
+            {
+                MakeUserInfo();
+            }
+
+            if (UserInfo == null)
+            {
+                result.Description = "원아정보를 알 수 없음";
+                return result;
+            }
+
+            string url = ContentTypeUrl(type, ActiveChildId, ActiveCenterId, ActiveClassId, pageToken);
+            if (url == "")
+            {
+                result.Description = "URL 을 알 수 없음";
+                return result;
+            }
+
             KidsNoteClientResponse downLoadResult = DownloadPage(url);
+            //KidsNoteClientResponse report1 = DownloadPage("https://www.kidsnote.com/api/v1_2/children/2346060/reports/?cls=480289&child=2346060&tz=Asia%2FSeoul&center_id=58663");
+
+            // https://www.kidsnote.com/api/v1_2/children/2346060/reports/?page_size=12&tz=Asia%2FSeoul&center_id=58663&cls=480289&child=2346060
+            // https://www.kidsnote.com/api/v1/centers/58663/notices?cls=480289&page_size=12
+            // https://www.kidsnote.com/api/v1_2/children/2346060/albums/?tz=Asia%2FSeoul&page_size=12&center=58663&cls=480289&child=2346060
+            // https://www.kidsnote.com/api/v1/centers/58663/menu?page_size=1000&month_menu=2022-04
+            // https://www.kidsnote.com/api/v1/centers/58663/calendar?cls=480289&month_event=2022-04
+            // https://www.kidsnote.com/api/v1_2/centers/58663/medications?page_size=12&cls=480289&child=2346060
+
             if (downLoadResult == null)
             {
                 result.Description = "페이지 다운로드 실패";
                 return result;
             }
 
+            /*
             if (page > 1 && downLoadResult.Response.StatusCode == HttpStatusCode.NotFound)
             {
                 result.Description = "페이지 다운로드 실패 : NotFound";
                 result.ContentList = new LinkedList<KidsNoteContent>();
                 return result;
             }
+            */
 
             if (downLoadResult.Response.StatusCode == HttpStatusCode.OK)
             {
                 result.Html = downLoadResult.Html;
 
-                string prefix = CssClassPrefix(type);
-
+                string nextPageToken = "";
                 if (type == ContentType.MENUTABLE)
                 {
                     // 식단표는 목록구성 없이 당일 데이터만 수집한다.
-                    result.ContentList = Parser.ParseMenuTable(type, downLoadResult.Html);
+                    result.ContentList = Parser.ParseMenuTable(type, downLoadResult.Html, out nextPageToken);
+                    result.NextPageToken = nextPageToken;
                 }
                 else
                 {
-                    result.ContentList = Parser.ParseArticleList(type, downLoadResult.Html, prefix);
+                    result.ContentList = Parser.ParseArticleList(type, downLoadResult.Html, out nextPageToken);
+                    result.NextPageToken = nextPageToken;
                 }
 
                 if (result.ContentList == null)
@@ -245,100 +269,102 @@ namespace LibKidsNoteForEveryone
 
                 foreach (var each in result.ContentList)
                 {
-                    if (each.Type == ContentType.MENUTABLE)
+                    foreach (var attach in each.Attachments)
                     {
-                        foreach (var content in result.ContentList)
+                        KidsNoteClientResponse resp = DownloadPage(attach.DownloadUrl, true);
+                        if (resp.Response.StatusCode == HttpStatusCode.OK)
                         {
-                            foreach (var attach in content.Attachments)
+                            attach.Data = resp.Binary;
+                        }
+                        else if (attach.ImageSource != "")
+                        {
+                            // URL 원문이 한글로 되어 있으면 다운로드가 안되는 듯 하다.
+                            // KidsNote 웹서버 (nginx) 문제인지, 키즈노트 서비스 문제인지는 불확실.
+                            // 이 경우 img 태그의 src 로 받아본다.
+                            resp = DownloadPage(attach.ImageSource, true);
+                            if (resp.Response.StatusCode == HttpStatusCode.OK)
                             {
-                                KidsNoteClientResponse resp = DownloadPage(attach.DownloadUrl, true);
-                                if (resp.Response.StatusCode == HttpStatusCode.OK)
-                                {
-                                    attach.Data = resp.Binary;
-                                }
-                                else
-                                {
-                                    result.Description = "Download 실패 : 첨부 이미지 다운로드 실패";
-                                }
+                                attach.Data = resp.Binary;
+                            }
+                            else
+                            {
+                                result.Description = "Download 실패 : 첨부 이미지 다운로드 실패";
                             }
                         }
-                    }
-                    else
-                    {
-                        KidsNoteClientResponse eachResp = DownloadPage(each.OriginalPageUrl);
-                        if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
+                        else
                         {
-                            result.Html = eachResp.Html;
-
-                            if (!RoleSelected && Parser.IsRoleSelectionPage(eachResp.Html))
-                            {
-                                RoleSelected = true;
-                                string csrfMiddlewareToken = Parser.GetCsrfMiddlewareToken(eachResp.Html);
-
-                                string next = each.OriginalPageUrl.Substring(Constants.KIDSNOTE_URL.Length);
-                                FormUrlEncodedContent content = new FormUrlEncodedContent(new[]
-                                {
-                                new KeyValuePair<string, string>("csrfmiddlewaretoken", csrfMiddlewareToken),
-                                new KeyValuePair<string, string>("nickname", "father"),
-                                new KeyValuePair<string, string>("next", next)
-                            }); ;
-
-                                KidsNoteClientResponse roleResp = PostData(Constants.KIDSNOTE_ROLE_POST_URL, content);
-                                if (roleResp.Response.StatusCode != HttpStatusCode.OK)
-                                {
-                                    result.Description = "Role 설정 실패";
-                                    return result;
-                                }
-                            }
-
-                            // Get Again
-                            eachResp = DownloadPage(each.PageUrl);
-                            if (eachResp != null && eachResp.Response.StatusCode == HttpStatusCode.OK)
-                            {
-                                Parser.ParseContent(each, eachResp.Html, prefix);
-                                bool hasNoContent = each.Title.Length == 0 ||
-                                    (each.Content.Length == 0 && each.Attachments.Count == 0);
-                                if (type != ContentType.MENUTABLE && hasNoContent)
-                                {
-                                    result.Description = "본문/제목 Parse 실패";
-                                    return result;
-                                }
-                            }
-
-                            foreach (var attach in each.Attachments)
-                            {
-                                KidsNoteClientResponse resp = DownloadPage(attach.DownloadUrl, true);
-                                if (resp.Response.StatusCode == HttpStatusCode.OK)
-                                {
-                                    attach.Data = resp.Binary;
-                                }
-                                else if (attach.ImageSource != "")
-                                {
-                                    // URL 원문이 한글로 되어 있으면 다운로드가 안되는 듯 하다.
-                                    // KidsNote 웹서버 (nginx) 문제인지, 키즈노트 서비스 문제인지는 불확실.
-                                    // 이 경우 img 태그의 src 로 받아본다.
-                                    resp = DownloadPage(attach.ImageSource, true);
-                                    if (resp.Response.StatusCode == HttpStatusCode.OK)
-                                    {
-                                        attach.Data = resp.Binary;
-                                    }
-                                    else
-                                    {
-                                        result.Description = "Download 실패 : 첨부 이미지 다운로드 실패";
-                                    }
-                                }
-                                else
-                                {
-                                    result.Description = "Download 실패 : 코드 OK 아님";
-                                }
-                            }
+                            result.Description = "Download 실패 : 코드 OK 아님";
                         }
                     }
                 }
+
                 return result;
             }
 
             return null;
+        }
+
+        private void MakeUserInfo()
+        {
+            KidsNoteClientResponse myInfoResult = DownloadPage(Constants.KIDSNOTE_MYINFO_URL);
+            if (myInfoResult.Response.StatusCode == HttpStatusCode.OK)
+            {
+                try
+                {
+                    JObject myInfo = JObject.Parse(myInfoResult.Html);
+                    if (myInfo != null)
+                    {
+                        UserInfo = new KidsNoteUserInfo();
+
+                        var kidsNoteUser = myInfo["user"];
+                        UserInfo.Id = (int)kidsNoteUser["id"];
+                        UserInfo.UserName = (string)kidsNoteUser["username"];
+                        UserInfo.Name = (string)kidsNoteUser["name"];
+
+                        var children = myInfo["children"];
+                        foreach (var child in children)
+                        {
+                            KidsNoteChildInfo ci = new KidsNoteChildInfo();
+                            ci.Id = (int)child["id"];
+                            ci.Name = (string)child["name"];
+                            ci.ParentId = (int)child["parent"]["id"];
+
+                            if (ActiveChildId < 0)
+                            {
+                                ActiveChildId = ci.Id;
+                            }
+
+                            var enrollments = child["enrollment"];
+                            foreach (var enrollment in enrollments)
+                            {
+                                KidsNoteChildEnrollment en = new KidsNoteChildEnrollment();
+                                en.Id = (int)enrollment["id"];
+                                en.CenterId = (int)enrollment["center_id"];
+                                en.CenterName = (string)enrollment["center_name"];
+                                en.ClassId = (int)enrollment["belong_to_class"];
+                                en.ClassName = (string)enrollment["class_name"];
+
+                                if (ActiveCenterId < 0)
+                                {
+                                    ActiveCenterId = en.CenterId;
+                                }
+                                if (ActiveClassId < 0)
+                                {
+                                    ActiveClassId = en.ClassId;
+                                }
+
+                                ci.Enrollments.Add(en);
+                            }
+
+                            UserInfo.Children.Add(ci);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Trace.WriteLine(e);
+                }
+            }
         }
 
         private bool IsLoginPage(string html)

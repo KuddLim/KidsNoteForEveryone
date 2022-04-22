@@ -11,6 +11,7 @@ namespace LibKidsNoteForEveryone
         public const string KIDSNOTE_URL = "https://www.kidsnote.com";
         public const string KIDSNOTE_LOGIN_POST_URL = KIDSNOTE_URL + "/login/";
         public const string KIDSNOTE_ROLE_POST_URL = KIDSNOTE_URL + "/accounts/role/name/";
+        public const string KIDSNOTE_MYINFO_URL = KIDSNOTE_URL + "/api/v1/me/info/";
 
         public const string KISNOTE_SCHEDULER_GROUP_NAME = "KIDS_NOTE_DEFAULT_GROUP";
         public const string CHROME_REDIRECT_URI = "https://ydbong.com/chrome_redirect.php?url=";

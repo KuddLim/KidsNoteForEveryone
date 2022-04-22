@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -30,390 +31,155 @@ namespace LibKidsNoteForEveryone
             return text.Trim();
         }
 
-        public KidsNoteContent ParseContent(KidsNoteContent content, string html, string classPrefix)
+        private KidsNoteContent ParseContent(JToken token, ContentType type)
         {
-            HtmlDocument doc = new HtmlDocument();
-            doc.LoadHtml(html);
+            KidsNoteContent content = new KidsNoteContent(type);
 
-            var root = doc.DocumentNode;
-            HtmlNode contentNode = root.SelectSingleNode("//div[@class='content']");
-            if (contentNode == null)
+            content.Id = (ulong)token["id"];
+            content.Title = String.Format("[{0}] {1}", type, (string)token["date_written"]);
+            content.Content = (string)token["content"];
+            content.Writer = (string)token["author_name"];
+            content.Date = DateTime.Parse((string)token["created"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+            JToken images = token["attached_images"];
+            foreach (var image in images)
             {
-                return null;
+                string imageSource = (string)image["original"];
+                KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.IMAGE, "", imageSource, imageSource);
+                attach.ImageSource = (string)image["original"];
+                content.Attachments.Add(attach);
             }
 
-            HtmlNode titleNode = contentNode.SelectSingleNode("//h3[@class='sub-header-title']");
-            content.Title = RemoveLeadingTrailingNewLines(ReplaceHtmlEscapes(titleNode.InnerText));
-
-            HtmlNode textNode = contentNode.SelectSingleNode("//div[@class='content-text']");
-            if (textNode == null)
+            JToken files = token["attached_files"];
+            foreach (var file in files)
             {
-                return null;
-            }
-            content.Content = RemoveLeadingTrailingNewLines(ReplaceHtmlEscapes(textNode.InnerHtml));
-
-            HtmlNode imageGridNode = contentNode.SelectSingleNode("//div[@id='img-grid-container']");
-            if (imageGridNode != null)
-            {
-                foreach (var each in imageGridNode.ChildNodes)
-                {
-                    if (each.Name == "#text")
-                    {
-                        continue;
-                    }
-
-                    HtmlNode aNode = each.SelectSingleNode("a");
-                    if (aNode != null)
-                    {
-                        string href = aNode.GetAttributeValue("href", "");
-                        string dataDownload = aNode.GetAttributeValue("data-download", "");
-
-                        dataDownload = dataDownload.Replace("&amp;", "&");
-
-                        KidsNoteContent.Attachment attachment = null;
-                        if (href != "" && dataDownload != "")
-                        {
-                            string[] tokens = href.Split('/');
-                            attachment = new KidsNoteContent.Attachment(AttachmentType.IMAGE, tokens.Last(), dataDownload, href);
-                            content.Attachments.Add(attachment);
-
-                            System.Diagnostics.Trace.WriteLine(dataDownload);
-                        }
-
-                        HtmlNode imgNode = FindNode(aNode, "img", null);
-                        if (href == "" && imgNode != null && attachment != null)
-                        {
-                            string src = imgNode.GetAttributeValue("src", "");
-                            attachment.ImageSource = src;
-                        }
-                    }
-                }
+                // id(ulong), access_key(string), file_size(ulong), status(string)
+                string name = (string)file["original_file_name"];
+                string link = (string)file["original"];
+                KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.OTHER, name, link, link);
+                content.Attachments.Add(attach);
             }
 
-            HtmlNode statusSection = root.SelectSingleNode("//div[@class='status-section']");
-            if (statusSection != null)
+            JToken video = token["attached_video"];
+            if (video != null)
             {
-                foreach (var status in statusSection.ChildNodes)
-                {
-                    if (status.Name != "div")
-                    {
-                        continue;
-                    }
+                string name = (string)video["original_file_name"];
+                // id (ulong), access_key(string), file_size(ulong), source_type(string)
+                string linkHigh = (string)video["high"];
+                //string linkLow = (string)video["low"];
+                //string preview = (string)video["preview"];
+                //string preview_small = (string)video["preview_small"];
 
-                    HtmlNode statusName = null;
-                    HtmlNode statusValue = null;
-                    foreach (var each in status.ChildNodes)
-                    {
-                        if (each.Name != "span")
-                        {
-                            continue;
-                        }
-
-                        if (each.GetAttributeValue("class", "") == "status-name")
-                        {
-                            statusName = each;
-                        }
-                        else
-                        {
-                            statusValue = each;
-                        }
-
-                        if (statusName != null && statusValue != null)
-                        {
-                            content.StatusReport.Add(statusName.InnerText, statusValue.InnerText);
-                        }
-                    }
-                }
-            }
-
-            HtmlNode detail = root.SelectSingleNode(String.Format("//div[@class='{0}-detail']", classPrefix));
-            //HtmlNode fileSection = contentNode.SelectSingleNode("/div[@class='flie-section']");
-            //HtmlNode fileSection = detail.SelectSingleNode("//div[@class='flie-section']");
-
-            // Xpath 로는 검색이 되지 않아 직접 DOM 탐색.
-            HtmlNode fileSection = FindNode(detail, "div", ConditionFileSection);
-            if (fileSection != null)
-            {
-                foreach (var each in fileSection.ChildNodes)
-                {
-                    if (each.Name !="div")
-                    {
-                        continue;
-                    }
-
-                    KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.OTHER);
-
-                    HtmlNode fileNameNode = FindNode(each, "div", ConditionFileName);
-                    if (fileNameNode != null)
-                    {
-                        HtmlNode firstP = FindNode(fileNameNode, "p", null);
-                        if (firstP != null)
-                        {
-                            attach.Name = firstP.InnerText;
-                        }
-                    }
-
-                    HtmlNode fileDownloadNode = FindNode(each, "div", ConditionFileDownload);
-                    if (fileDownloadNode != null)
-                    {
-                        HtmlNode aNode = FindNode(fileDownloadNode, "a", null);
-                        if (aNode != null)
-                        {
-                            attach.DownloadUrl = ReplaceHtmlEscapes(aNode.GetAttributeValue("href", ""));
-                        }
-                    }
-
-                    if (attach.Name != "" && attach.DownloadUrl != "")
-                    {
-                        content.Attachments.Add(attach);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-            }
-
-            // TODO: 영상이 두개인 경우?
-            HtmlNode videoSection = FindNode(detail, "div", ConditionVideoDownloadSection);
-            if (videoSection != null)
-            {
-                HtmlNode aNode = FindNode(videoSection, "a", null);
-                if (aNode != null)
-                {
-                    string href = aNode.GetAttributeValue("href", "");
-                    if (href != "")
-                    {
-                        href = href.Replace("&amp;", "&");
-                        string ext = "";
-                        int pos = href.LastIndexOf('.');
-                        if (pos > 0)
-                        {
-                            ext = href.Substring(pos);
-                            KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.VIDEO, "Video" + ext, href, "");
-                            content.Attachments.Add(attach);
-                        }
-                    }
-                }
-            }
-
-            HtmlNode authorNode = contentNode.SelectSingleNode("//span[@class='name']");
-            if (authorNode == null)
-            {
-                return null;
-            }
-            content.Writer = authorNode.InnerText;
-
-            HtmlNode dateNode = contentNode.SelectSingleNode("//span[@class='date']");
-            if (dateNode == null)
-            {
-                return null;
-            }
-
-            // english : Wednesday, March 18, 2020
-            // korean : 2020년 3월 18일 수요일
-            try
-            {
-                CultureInfo here = new CultureInfo("ko-KR");
-                content.Date = DateTime.Parse(dateNode.InnerText, here);
-            }
-            catch (System.FormatException)
-            {
-                content.Date = DateTime.Now;
+                KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.VIDEO, name, linkHigh, linkHigh);
+                content.Attachments.Add(attach);
             }
 
             return content;
         }
 
-        public LinkedList<KidsNoteContent> ParseArticleList(ContentType type, string html, string classPrefix)
+        public LinkedList<KidsNoteContent> ParseArticleList(ContentType type, string json, out string nextPageToken)
         {
-            HtmlDocument doc = new HtmlDocument();
-            doc.LoadHtml(html);
+            nextPageToken = "";
+            LinkedList<KidsNoteContent> articleList = new LinkedList<KidsNoteContent>();
 
-            var root = doc.DocumentNode;
-            // report, notice, album, medication, return-home
-            // 일정표와 식단표는 다름.
-            var containerNode = root.SelectSingleNode(String.Format("//div[@class='{0}-list-wrapper']", classPrefix));
-            if (containerNode == null)
+            try
             {
-                return null;
-            }
-
-            LinkedList<KidsNoteContent> contentList = new LinkedList<KidsNoteContent>();
-
-            foreach (var child in containerNode.ChildNodes)
-            {
-                if (child.Name != "a")
+                JObject document = JObject.Parse(json);
+                //var results = document["results"];
+                nextPageToken = (string)document["next"];
+                if (nextPageToken == null)
                 {
-                    continue;
+                    nextPageToken = "";
                 }
-
-                string href = child.GetAttributeValue("href", "");
-
-                if (href != "")
+                JToken results = document["results"];
+                foreach (var result in results)
                 {
-                    KidsNoteContent content = new KidsNoteContent(type);
-
-                    content.OriginalPageUrl = Constants.KIDSNOTE_URL + href;
-
-                    UInt64 parsedId = 0;
-                    int pos = href.IndexOf("/?req");
-                    if (pos > 0)
+                    KidsNoteContent content = ParseContent(result, type);
+                    if (content != null)
                     {
-                        href = href.Substring(0, pos);
-                        string[] tokens = href.Split('/');
-                        if (UInt64.TryParse(tokens.Last(), out parsedId))
-                        {
-                            content.Id = parsedId;
-                        }
+                        articleList.AddLast(content);
                     }
-
-                    content.PageUrl = Constants.KIDSNOTE_URL + href;
-                    contentList.AddLast(content);
                 }
             }
+            catch (Exception e)
+            {
+                System.Diagnostics.Trace.WriteLine(e);
+            }
 
-            // TODO: Next 가 있는 경우, 또는 Scroll 을 해야 하는 경우.
-            return contentList;
+            return articleList;
         }
 
-        public LinkedList<KidsNoteContent> ParseMenuTable(ContentType type, string html)
+        private LinkedList<KidsNoteContent> ParseDayMenutable(JToken node)
         {
+            LinkedList<KidsNoteContent> dayMenutable = new LinkedList<KidsNoteContent>();
+
+            string date = (string)node["date_menu"];
+            string writer = (string)node["author_name"];
+            string id = (string)node["id"];
+            DateTime dt = DateTime.Parse((string)node["created"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+            Action<string, string> addMealInfo = (key, mealName) =>
+            {
+                string mealInfo = (string)node[key];
+
+                if (mealInfo != null && mealInfo != "")
+                {
+                    KidsNoteContent meal = new KidsNoteContent(ContentType.MENUTABLE);
+                    string items = mealInfo.Replace("\n", ", ");
+                    meal.Title = String.Format("{0} {1} : {2}", date, mealName, items);
+                    meal.Writer = writer;
+                    meal.Content = mealInfo;
+                    meal.Date = dt;
+
+                    JToken attachment = node[key + "_img"];
+                    if (attachment != null)
+                    {
+                        string imageSource = (string)attachment["original"];
+                        KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.IMAGE, "", imageSource, imageSource);
+                        meal.Attachments.Add(attach);
+                    }
+
+                    dayMenutable.AddLast(meal);
+                }
+            };
+
+            addMealInfo("morning_snack", "오전간식");
+            addMealInfo("lunch", "점심");
+            addMealInfo("afternoon_snack", "오후간식");
+
+            return dayMenutable;
+        }
+
+        public LinkedList<KidsNoteContent> ParseMenuTable(ContentType type, string json, out string nextPageToken)
+        {
+            nextPageToken = "";
             LinkedList<KidsNoteContent> contents = new LinkedList<KidsNoteContent>();
 
-            HtmlDocument doc = new HtmlDocument();
-            doc.LoadHtml(html);
-
-            HtmlNode root = doc.DocumentNode;
-            HtmlNode menuBody = root.SelectSingleNode("//div[@class='menu-table-detail-body']");
-
-            DateTime now = DateTime.Now;
-            string id = now.ToString("yyyyMMdd");
-
-            KidsNoteContent content = new KidsNoteContent(type);
-            content.Date = new DateTime(now.Year, now.Month, now.Day);
-            content.Id = ulong.Parse(id);
-
-            foreach (var each in menuBody.ChildNodes)
+            try
             {
-                if (each.Name != "div")
+                JObject document = JObject.Parse(json);
+                nextPageToken = (string)document["next"];
+                if (nextPageToken == null)
                 {
-                    continue;
+                    nextPageToken = "";
+                }
+                JToken results = document["results"];
+                foreach (var result in results)
+                {
+                    LinkedList<KidsNoteContent> dayMenu = ParseDayMenutable(result);
+                    foreach (var dm in dayMenu)
+                    {
+                        contents.AddLast(dm);
+                    }
                 }
 
-                KidsNoteContent.Attachment attach = ParseMenuTableItem(each);
-                if (attach == null)
-                {
-                    return null;
-                }
-
-                if (attach.Type != AttachmentType.IMAGE_MENU_DEFAULT_IMAGE)
-                {
-                    content.Attachments.Add(attach);
-                }
             }
-
-            contents.AddLast(content);
+            catch (Exception e)
+            {
+                System.Diagnostics.Trace.WriteLine(e);
+            }
 
             return contents;
-        }
-
-        private KidsNoteContent.Attachment ParseMenuTableItem(HtmlNode node)
-        {
-            KidsNoteContent.Attachment attach = null;
-
-            HtmlNode mealType = FindNode(node, "h5", null);
-            if (mealType == null)
-            {
-                return null;
-            }
-
-            string mealTypeStr = mealType.InnerText;
-
-            foreach (var each in node.ChildNodes)
-            {
-                if (each.Name != "div")
-                {
-                    continue;
-                }
-
-                string cls = each.GetAttributeValue("class", "");
-                string dataIndex = each.GetAttributeValue("data-index", "");
-
-                AttachmentType type = dataIndex == "0" ? AttachmentType.IMAGE_MENU_MORNING_SNACK
-                    : dataIndex == "1" ? AttachmentType.IMAGE_MENU_LUNCH
-                    : dataIndex == "2" ? AttachmentType.IMAGE_MENU_AFTERNOON_SNACK
-                    : dataIndex == "3" ? AttachmentType.IMAGE_MENU_DINNER
-                    : AttachmentType.IMAGE_MENU_DEFAULT_IMAGE;
-
-                if (cls == "card-body")
-                {
-                    HtmlNode aNode = FindNode(each, "a", null);
-                    if (aNode == null)
-                    {
-                        return null;
-                    }
-
-                    string href = aNode.GetAttributeValue("href", "");
-                    if (href == null)
-                    {
-                        return null;
-                    }
-
-                    int pos = href.LastIndexOf(".");
-                    if (pos < 0)
-                    {
-                        return null;
-                    }
-
-                    string hrefExt = href.Substring(pos);
-
-                    if (href.IndexOf("menu_lunch_img.png") > 0 || href.IndexOf("menu_afternoon_img.png") > 0)
-                    {
-                        attach = new KidsNoteContent.Attachment(AttachmentType.IMAGE_MENU_DEFAULT_IMAGE);
-                        return attach;
-                    }
-                    else
-                    {
-                        attach = new KidsNoteContent.Attachment(type, mealTypeStr + hrefExt, href, href);
-                    }
-                }
-                else if (cls == "card-footer")
-                {
-                    HtmlNode pNode = FindNode(each, "p", null);
-                    if (pNode != null && attach != null)
-                    {
-                        attach.Description = pNode.InnerText;
-                    }
-                }
-            }
-
-            return attach;
-        }
-
-        public bool IsRoleSelectionPage(string html)
-        {
-            HtmlDocument doc = new HtmlDocument();
-            doc.LoadHtml(html);
-
-            HtmlNode root = doc.DocumentNode;
-            HtmlNode pageInner = root.SelectSingleNode("//div[@class='page-inner']");
-            if (pageInner != null)
-            {
-                HtmlNode form = pageInner.SelectSingleNode("//form");
-                if (form != null)
-                {
-                    //var groupSpan = form.SelectSingleNode("//span[@class='input-group-btn']");
-                    HtmlNodeCollection nodes = form.SelectNodes("//form[@action='/accounts/role/name/']");
-                    if (nodes == null)
-                    {
-                        throw new Exception("Parse Exception");
-                    }
-                    return nodes.Count != 0;
-                }
-            }
-
-            return false;
         }
 
         // XPath 로 바로 찾아갈 수 있지만, 아래와 같이 경로를 하나하나 찾아가면 간단한 페이지 변경시

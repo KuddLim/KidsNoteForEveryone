@@ -99,7 +99,8 @@ namespace Tester
                 Conf.KidsNotePassword = password;
             }
 
-            KidsNoteContentDownloadResult result = Client.DownloadContent(type, History.GetLastContentId(type));
+            string nextPageToken = "";
+            KidsNoteContentDownloadResult result = Client.DownloadContent(type, History.GetLastContentId(type), nextPageToken);
             LinkedList<KidsNoteContent> content = result.ContentList;
 
             if (content == null || content.Count == 0)
