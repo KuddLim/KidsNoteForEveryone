@@ -12,72 +12,77 @@ namespace LibKidsNoteForEveryone
 {
     public class KidsNoteClientParser
     {
-        private static Dictionary<string, string> ConditionFileSection = new Dictionary<string, string>() { { "class", "file-section" } };
-        private static Dictionary<string, string> ConditionVideoDownloadSection = new Dictionary<string, string>() { { "class", "download-button-wrapper" } };
-        private static Dictionary<string, string> ConditionFileName = new Dictionary<string, string>() { { "class", "file-name" } };
-        private static Dictionary<string, string> ConditionFileDownload = new Dictionary<string, string>() { { "class", "file-download" } };
-
-        private string RemoveLeadingTrailingNewLines(string text)
-        {
-            while (text.Length > 0 && text.First() == '\n')
-            {
-                text = text.Substring(1);
-            }
-            while (text.Length > 0 && text.Last() == '\n')
-            {
-                text = text.Substring(0, text.Length - 1);
-            }
-
-            return text.Trim();
-        }
-
-        private KidsNoteContent ParseContent(JToken token, ContentType type)
+        private KidsNoteContent ParseContent(JToken token, ContentType type, string childName, KidsNoteChildEnrollment enrollment)
         {
             KidsNoteContent content = new KidsNoteContent(type);
 
             content.Id = (ulong)token["id"];
+            content.ChildName = childName;
+            content.Enrollment = enrollment;
             content.Title = String.Format("[{0}] {1}", type, (string)token["date_written"]);
             content.Content = (string)token["content"];
             content.Writer = (string)token["author_name"];
             content.Date = DateTime.Parse((string)token["created"], null, System.Globalization.DateTimeStyles.RoundtripKind);
 
             JToken images = token["attached_images"];
-            foreach (var image in images)
+            if (images != null)
             {
-                string imageSource = (string)image["original"];
-                KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.IMAGE, "", imageSource, imageSource);
-                attach.ImageSource = (string)image["original"];
-                content.Attachments.Add(attach);
+                foreach (var image in images)
+                {
+                    string imageSource = (string)image["original"];
+                    string name = (string)image["original_file_name"];
+                    KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.IMAGE, name, imageSource, imageSource);
+                    attach.ImageSource = (string)image["original"];
+                    content.Attachments.Add(attach);
+                }
             }
 
             JToken files = token["attached_files"];
-            foreach (var file in files)
+            if (files != null)
             {
-                // id(ulong), access_key(string), file_size(ulong), status(string)
-                string name = (string)file["original_file_name"];
-                string link = (string)file["original"];
-                KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.OTHER, name, link, link);
-                content.Attachments.Add(attach);
+                foreach (var file in files)
+                {
+                    // id(ulong), access_key(string), file_size(ulong), status(string)
+                    string name = (string)file["original_file_name"];
+                    string link = (string)file["original"];
+                    KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.OTHER, name, link, link);
+                    content.Attachments.Add(attach);
+                }
             }
 
             JToken video = token["attached_video"];
-            if (video != null)
+            if (video != null && video.HasValues)
             {
-                string name = (string)video["original_file_name"];
+                string name = "";
+                JToken nameToken = video["original_file_name"];
+                if (nameToken != null)
+                {
+                    name = (string)nameToken;
+                }
+                string linkHigh = "";
+                JToken linkHighToken = video["high"];
+                if (linkHighToken != null)
+                {
+                    linkHigh = (string)linkHighToken;
+                }
+
+                if (linkHigh != "")
+                {
+                    KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.VIDEO, name, linkHigh, linkHigh);
+                    content.Attachments.Add(attach);
+                }
                 // id (ulong), access_key(string), file_size(ulong), source_type(string)
-                string linkHigh = (string)video["high"];
+                //string linkHigh = (string)video["high"];
                 //string linkLow = (string)video["low"];
                 //string preview = (string)video["preview"];
                 //string preview_small = (string)video["preview_small"];
-
-                KidsNoteContent.Attachment attach = new KidsNoteContent.Attachment(AttachmentType.VIDEO, name, linkHigh, linkHigh);
-                content.Attachments.Add(attach);
             }
 
             return content;
         }
 
-        public LinkedList<KidsNoteContent> ParseArticleList(ContentType type, string json, out string nextPageToken)
+        public LinkedList<KidsNoteContent> ParseArticleList(ContentType type, string json, string childName,
+                                                            KidsNoteChildEnrollment enrollment, out string nextPageToken)
         {
             nextPageToken = "";
             LinkedList<KidsNoteContent> articleList = new LinkedList<KidsNoteContent>();
@@ -94,7 +99,7 @@ namespace LibKidsNoteForEveryone
                 JToken results = document["results"];
                 foreach (var result in results)
                 {
-                    KidsNoteContent content = ParseContent(result, type);
+                    KidsNoteContent content = ParseContent(result, type, childName, enrollment);
                     if (content != null)
                     {
                         articleList.AddLast(content);
@@ -150,7 +155,8 @@ namespace LibKidsNoteForEveryone
             return dayMenutable;
         }
 
-        public LinkedList<KidsNoteContent> ParseMenuTable(ContentType type, string json, out string nextPageToken)
+        public LinkedList<KidsNoteContent> ParseMenuTable(ContentType type, string json, string childName,
+                                                            KidsNoteChildEnrollment enrollment, out string nextPageToken)
         {
             nextPageToken = "";
             LinkedList<KidsNoteContent> contents = new LinkedList<KidsNoteContent>();
@@ -169,6 +175,8 @@ namespace LibKidsNoteForEveryone
                     LinkedList<KidsNoteContent> dayMenu = ParseDayMenutable(result);
                     foreach (var dm in dayMenu)
                     {
+                        dm.ChildName = childName;
+                        dm.Enrollment = enrollment;
                         contents.AddLast(dm);
                     }
                 }
@@ -178,6 +186,15 @@ namespace LibKidsNoteForEveryone
             {
                 System.Diagnostics.Trace.WriteLine(e);
             }
+
+            return contents;
+        }
+
+        public LinkedList<KidsNoteContent> ParseAlbum(ContentType type, string json, string childName,
+                                                            KidsNoteChildEnrollment enrollment, out string nextPageToken)
+        {
+            nextPageToken = "";
+            LinkedList<KidsNoteContent> contents = new LinkedList<KidsNoteContent>();
 
             return contents;
         }

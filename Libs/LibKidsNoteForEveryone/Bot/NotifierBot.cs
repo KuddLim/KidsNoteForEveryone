@@ -306,9 +306,7 @@ namespace LibKidsNoteForEveryone.Bot
                         {
                             try
                             {
-                                string link = attach.DownloadUrl.IndexOf("%") >= 0 ? attach.ImageSource : attach.DownloadUrl;
-                                string originalLink = attach.DownloadUrl.Replace("&amp;", "&");
-                                string message = String.Format("사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n{0}", link);
+                                string message = String.Format("[{0}] 사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n{1}", content.Enrollment.ClassName, attach.DownloadUrl);
                                 var task = TheClient.SendTextMessageAsync(user, message);
                                 task.Wait();
                             }

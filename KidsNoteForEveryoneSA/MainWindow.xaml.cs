@@ -41,6 +41,7 @@ namespace KidsNoteForEveryoneSA
 
             //HashSet<ContentType> types = new HashSet<ContentType>() { ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM };
             HashSet<ContentType> types = new HashSet<ContentType>() { ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM, ContentType.MENUTABLE };
+            //HashSet<ContentType> types = new HashSet<ContentType>() { ContentType.ALBUM };
             TheManager = new KidsNoteNotifierManager(types);
             TheManager.OnGetNewContents = this.OnGetNewContents;
             TheManager.OnUploadProgressMessage = this.OnUploadProgressMessage;
@@ -301,6 +302,11 @@ namespace KidsNoteForEveryoneSA
             buttonStop.IsEnabled = true;
             buttonFetchNow.IsEnabled = true;
             (tabControl.Items[1] as TabItem).IsEnabled = false;
+
+            KidsNoteScheduleParameters param = new KidsNoteScheduleParameters();
+            param.Days = KidsNoteScheduleParameters.DaysType.WHOLE_WEEK;
+            param.Job = KidsNoteScheduleParameters.JobType.JOB_CHECK_NEW_CONTENTS;
+            TheManager.AddJob(param);
 
             TheManager.Startup();
         }

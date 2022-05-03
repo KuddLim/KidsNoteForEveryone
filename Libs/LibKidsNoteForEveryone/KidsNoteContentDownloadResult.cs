@@ -8,7 +8,7 @@ namespace LibKidsNoteForEveryone
 {
     public class KidsNoteContentDownloadResult
     {
-        public string Html { get; set; }
+        public string Content { get; set; }
         public string Description { get; set; }
         public LinkedList<KidsNoteContent> ContentList { get; set; }
         public bool NotNow { get; set; }
@@ -16,7 +16,7 @@ namespace LibKidsNoteForEveryone
 
         public KidsNoteContentDownloadResult()
         {
-            Html = "";
+            Content = "";
             Description = "";
             NotNow = false;
             NextPageToken = "";

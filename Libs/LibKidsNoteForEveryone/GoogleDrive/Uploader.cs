@@ -19,6 +19,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
         public delegate string GetBaseFolderIdDelegate();
         public delegate void SetBaseFolderIdDelegate(string id);
         public delegate void UploadProgressDelegate(string progress);
+        public delegate Stream DownloadUrlDelegate(string url);
 
         private static string[] Scopes = { DriveService.Scope.DriveReadonly };
         private UserCredential Credential;
@@ -30,6 +31,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
         public GetBaseFolderIdDelegate GetBaseFolderId;
         public SetBaseFolderIdDelegate SetBaseFolderId;
         public UploadProgressDelegate UploadProgress;
+        public DownloadUrlDelegate DownloadFunction;
 
         public Uploader(string credentialPath, string tokenPath, string childName)
         {
@@ -283,6 +285,12 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             int i = 0;
             foreach (var each in content.Attachments)
             {
+                if (each.DownloadOnTheFly && DownloadFunction != null)
+                {
+                    System.Diagnostics.Trace.WriteLine(String.Format("[{0}] Downloading OTF .. {1}", i, each.DownloadUrl));
+                    each.Data = DownloadFunction(each.DownloadUrl);
+                }
+
                 ++i;
                 int pos = each.DownloadUrl.LastIndexOf('.');
                 string ext = "";
@@ -293,6 +301,9 @@ namespace LibKidsNoteForEveryone.GoogleDrive
                 }
 
                 bool isVideo = each.Type == AttachmentType.VIDEO;
+
+                System.Diagnostics.Trace.WriteLine(String.Format("[{0}] Uploading.. {1}", i, each.DownloadUrl));
+
                 string id = isVideo ? UploadVideoAttachment(each, i, containingFolderId, ext, encrypt)
                                     : UploadPhotoAttachment(each, i, containingFolderId, ext, encrypt);
                 if (id != null && id.Length > 0)

@@ -25,6 +25,7 @@ namespace LibKidsNoteForEveryone
         private HashSet<string> ActiveScheduleNames;
         private Bot.NotifierBot TheBot;
         private DateTime LastErrorTime;
+        private static bool DlOnTheFly = true;
 
         public KidsNoteNotifierManager(HashSet<ContentType> monitoringTypes)
         {
@@ -193,7 +194,7 @@ namespace LibKidsNoteForEveryone
                     UInt64 lastId = History.GetLastContentId(eachType);
 
                     string nextPageToken = "";
-                    KidsNoteContentDownloadResult result = TheClient.DownloadContent(eachType, lastId, nextPageToken);
+                    KidsNoteContentDownloadResult result = TheClient.DownloadContent(eachType, lastId, nextPageToken, DlOnTheFly);
                     if (result == null || result.NotNow)
                     {
                         continue;
@@ -208,7 +209,7 @@ namespace LibKidsNoteForEveryone
                         ulong lastIdInNewOnes = newOnes.Last().Id;
                         System.Diagnostics.Trace.WriteLine("Get next page...");
 
-                        KidsNoteContentDownloadResult nextResult = TheClient.DownloadContent(eachType, lastId, nextPageToken);
+                        KidsNoteContentDownloadResult nextResult = TheClient.DownloadContent(eachType, lastId, nextPageToken, DlOnTheFly);
                         nextPageToken = nextResult.NextPageToken;
 
                         LinkedList<KidsNoteContent> nextOnes = nextResult.ContentList;
@@ -226,7 +227,7 @@ namespace LibKidsNoteForEveryone
                     if (newOnes == null)
                     {
                         // 보통은 첫 페이지를 넘어가지 않을 것이므로 result.Html 만 참조한다.
-                        HandleContentParseFailed(eachType, result.Html);
+                        HandleContentParseFailed(eachType, result.Content);
                         continue;
                     }
 
@@ -236,8 +237,9 @@ namespace LibKidsNoteForEveryone
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                System.Diagnostics.Trace.WriteLine(e);
                 newContents = null;
             }
 
@@ -294,6 +296,8 @@ namespace LibKidsNoteForEveryone
 
             MakeNewClient();
 
+            System.Diagnostics.Trace.WriteLine("Do Scheduled Check..");
+
             Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents = GetNewContents();
 
             if (newContents != null && newContents.Count > 0)
@@ -321,6 +325,7 @@ namespace LibKidsNoteForEveryone
                 TheUploader.GetBaseFolderId = this.GetBaseFolderId;
                 TheUploader.SetBaseFolderId = this.SetBaseFolderId;
                 TheUploader.UploadProgress = this.UploadProgress;
+                TheUploader.DownloadFunction = this.DownloadFunction;
                 TheUploader.Startup();
             }
 
@@ -349,6 +354,12 @@ namespace LibKidsNoteForEveryone
             {
                 OnUploadProgressMessage(message);
             }
+        }
+
+        private Stream DownloadFunction(string url)
+        {
+            KidsNoteClientResponse resp = TheClient.DownloadAttachment(url, true);
+            return resp.Binary;
         }
 
         private KidsNoteClient MakeNewClient()

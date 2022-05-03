@@ -10,6 +10,8 @@ namespace LibKidsNoteForEveryone
     public class KidsNoteContent
     {
         public ContentType Type { get; set; }
+        public string ChildName { get; set; }
+        public KidsNoteChildEnrollment  Enrollment { get; set; }
         public UInt64 Id { get; set; }
         public string PageUrl { get; set; }
         public string OriginalPageUrl { get; set; }
@@ -29,6 +31,7 @@ namespace LibKidsNoteForEveryone
             //public byte[] Data { get; set; }
             public Stream Data { get; set; }
             public string Description { get; set; }
+            public bool DownloadOnTheFly { get; set; }
 
             public Attachment(AttachmentType type, string name = "", string url = "", string imageSource = "")
             {
@@ -37,12 +40,15 @@ namespace LibKidsNoteForEveryone
                 DownloadUrl = url;
                 ImageSource = imageSource;
                 Description = "";
+                DownloadOnTheFly = false;
             }
         }
 
         public KidsNoteContent(ContentType type)
         {
             Type = type;
+            ChildName = "";
+            Enrollment = new KidsNoteChildEnrollment();
             Id = 0;
             OriginalPageUrl = "";
             PageUrl = "";
@@ -68,10 +74,15 @@ namespace LibKidsNoteForEveryone
                     sb.AppendFormat("\n{0} : {1}", menuType, attach.Description);
                 }
             }
+            else if (Type == ContentType.ALBUM)
+            {
+                sb.AppendFormat("[{0}] {1} ({2}), 작성자 : {3}", Enrollment.ClassName, ContentTypeConverter.ContentTypeToString(Type), Id, Writer);
+                sb.Append("\n\n");
+                sb.Append(GetContentString());
+            }
             else
             {
-                sb.AppendFormat("{0} [{1}]", ContentTypeConverter.ContentTypeToString(Type), Id);
-                sb.AppendFormat("\n제목 : {0}, 작성자 : {1}", Title, Writer);
+                sb.AppendFormat("\n[{0}] 제목 : {1} ({2}), 작성자 : {3}", Enrollment.ClassName, Title, Id, Writer);
                 sb.Append("\n\n");
                 sb.Append(GetContentString());
             }
