@@ -192,33 +192,34 @@ namespace LibKidsNoteForEveryone
                 {
                     UInt64 lastId = History.GetLastContentId(eachType);
 
-                    int page = 1;
-                    KidsNoteContentDownloadResult result = TheClient.DownloadContent(eachType, lastId, page);
-                    if (result.NotNow)
+                    string nextPageToken = "";
+                    KidsNoteContentDownloadResult result = TheClient.DownloadContent(eachType, lastId, nextPageToken);
+                    if (result == null || result.NotNow)
                     {
                         continue;
                     }
 
+                    nextPageToken = result.NextPageToken;
                     LinkedList<KidsNoteContent> newOnes = result.ContentList;
 
                     // 공지사항은 너무 많고, 아이에게 크게 중요치 않으므로 다음페이지를 가져오지는 않는다.
                     while (eachType != ContentType.NOTICE && newOnes != null && newOnes.Count > 1 && newOnes.Last().Id > lastId)
                     {
+                        ulong lastIdInNewOnes = newOnes.Last().Id;
                         System.Diagnostics.Trace.WriteLine("Get next page...");
 
-                        ++page;
-                        KidsNoteContentDownloadResult nextResult = TheClient.DownloadContent(eachType, lastId, page);
+                        KidsNoteContentDownloadResult nextResult = TheClient.DownloadContent(eachType, lastId, nextPageToken);
+                        nextPageToken = nextResult.NextPageToken;
 
                         LinkedList<KidsNoteContent> nextOnes = nextResult.ContentList;
-
-                        if (nextOnes.Count == 0)
-                        {
-                            break;
-                        }
-
                         foreach (var nextOne in nextOnes)
                         {
                             newOnes.AddLast(nextOne);
+                        }
+
+                        if (nextOnes.Count == 0 || nextPageToken == "")
+                        {
+                            break;
                         }
                     }
 
@@ -279,6 +280,7 @@ namespace LibKidsNoteForEveryone
             TheConfiguration = GetConfigurationImpl(forceReload);
             History = GetHistory(true);
 
+#if !DEBUG
             DateTime now = DateTime.Now;
             if (TheConfiguration.OperationHourBegin != 0 && TheConfiguration.OperationHourBegin > now.Hour)
             {
@@ -288,6 +290,7 @@ namespace LibKidsNoteForEveryone
             {
                 return;
             }
+#endif
 
             MakeNewClient();
 

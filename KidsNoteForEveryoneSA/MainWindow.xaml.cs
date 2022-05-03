@@ -39,7 +39,8 @@ namespace KidsNoteForEveryoneSA
         {
             InitializeComponent();
 
-            HashSet<ContentType> types = new HashSet<ContentType>() { ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM };
+            //HashSet<ContentType> types = new HashSet<ContentType>() { ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM };
+            HashSet<ContentType> types = new HashSet<ContentType>() { ContentType.REPORT, ContentType.NOTICE, ContentType.ALBUM, ContentType.MENUTABLE };
             TheManager = new KidsNoteNotifierManager(types);
             TheManager.OnGetNewContents = this.OnGetNewContents;
             TheManager.OnUploadProgressMessage = this.OnUploadProgressMessage;

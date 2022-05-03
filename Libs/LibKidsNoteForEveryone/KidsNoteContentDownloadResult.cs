@@ -12,12 +12,14 @@ namespace LibKidsNoteForEveryone
         public string Description { get; set; }
         public LinkedList<KidsNoteContent> ContentList { get; set; }
         public bool NotNow { get; set; }
+        public string NextPageToken { get; set; }
 
         public KidsNoteContentDownloadResult()
         {
             Html = "";
             Description = "";
             NotNow = false;
+            NextPageToken = "";
         }
     }
 }
