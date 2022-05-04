@@ -297,6 +297,7 @@ namespace LibKidsNoteForEveryone.Bot
 
             foreach (var user in receivers)
             {
+                int count = 0;
                 foreach (var attach in content.Attachments)
                 {
                     if (IsImageAttachment(attach) && attach.DownloadUrl != "")
@@ -306,7 +307,8 @@ namespace LibKidsNoteForEveryone.Bot
                         {
                             try
                             {
-                                string message = String.Format("[{0}] 사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n{1}", content.Enrollment.ClassName, attach.DownloadUrl);
+                                string message = String.Format("[{0}] ({1}/{2})\n사진을 전송합니다. 잠시 기다리시면 미리보기가 나타납니다.\n{3}",
+                                    content.Enrollment.ClassName, ++count, content.Attachments.Count, attach.DownloadUrl);
                                 var task = TheClient.SendTextMessageAsync(user, message);
                                 task.Wait();
                             }
