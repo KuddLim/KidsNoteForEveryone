@@ -7,18 +7,63 @@ using Newtonsoft.Json;
 
 namespace LibKidsNoteForEveryone
 {
+    public class UserGroup
+    {
+        [JsonProperty("subscribe_all_boards")]
+        public bool SubScribeAllBoards { get; set; }
+        [JsonProperty("subscriptions")]
+        public List<ContentType> Subscriptions { get; set; }
+        [JsonProperty("members")]
+        public HashSet<Telegram.Bot.Types.ChatId> Members { get; set; }
+        [JsonProperty("include_word")]
+        public string IncludeWord { get; set; }
+        [JsonProperty("exclude_word")]
+        public string ExcludeWord { get; set; }
+
+        public UserGroup()
+        {
+            SubScribeAllBoards = false;
+            Subscriptions = new List<ContentType>();
+            Members = new HashSet<Telegram.Bot.Types.ChatId>();
+            IncludeWord = "";
+            ExcludeWord = "";
+        }
+
+        public List<string> GetSubscribers(ContentType type)
+        {
+            List<string> subscribers = new List<string>();
+            if (Subscriptions.Contains(type))
+            {
+                foreach (var each in Members)
+                {
+                    subscribers.Add(each.Identifier.ToString());
+                }
+            }
+            return subscribers;
+        }
+    }
+
     public class Configuration
     {
+        public static long GROUP_ID_ADMINISTRATOR = 0;
+        public static long GROUP_ID_UNSPECIFIED = 9999999;
+
         // 텔레그램 봇과 관리자 간의 텔레그램 Chat ID
         [JsonProperty("manager_chat_id")]
         public Telegram.Bot.Types.ChatId ManagerChatId { get; set; }
 
         // 텔레그램 봇과 구독자 단체대화방간의 텔레그램 Chat ID
+        /*
         [JsonProperty("all_board_subscribers")]
         public HashSet<Telegram.Bot.Types.ChatId> AllBoardSubscribers { get; set; }
-
         [JsonProperty("subscriber_map")]
         public Dictionary<ContentType, HashSet<Telegram.Bot.Types.ChatId>> SubScriberMap;
+        */
+
+        [JsonProperty("subscriber_groups")]
+        public Dictionary<ContentType, HashSet<long>> SubscriberGroups;     // value : groupId
+        [JsonProperty("subscribers")]
+        public Dictionary<long, UserGroup> Subscribers { get; set; }        // key : groupId
 
         // BotFather 로 생성한 텔레그램 봇 token
         [JsonProperty("telebram_bot_token")]
@@ -78,11 +123,14 @@ namespace LibKidsNoteForEveryone
         public Configuration()
         {
             ManagerChatId = 0;
-            AllBoardSubscribers = new HashSet<Telegram.Bot.Types.ChatId>();
-            SubScriberMap = new Dictionary<ContentType, HashSet<Telegram.Bot.Types.ChatId>>();
+            //AllBoardSubscribers = new HashSet<Telegram.Bot.Types.ChatId>();
+            Subscribers = new Dictionary<long, UserGroup>();
+            //SubScriberMap = new Dictionary<ContentType, HashSet<Telegram.Bot.Types.ChatId>>();
+            SubscriberGroups = new Dictionary<ContentType, HashSet<long>>();
             foreach (ContentType ct in KnownContentTypes)
             {
-                SubScriberMap[ct] = new HashSet<Telegram.Bot.Types.ChatId>();
+                //SubScriberMap[ct] = new HashSet<Telegram.Bot.Types.ChatId>();
+                SubscriberGroups[ct] = new HashSet<long>();
             }
 
             TelegramBotToken = "";
@@ -93,23 +141,46 @@ namespace LibKidsNoteForEveryone
             GoogleDriveBackupFolderId = "";
         }
 
+        private void CheckNullFields()
+        {
+            /*
+            if (AllBoardSubscribers == null)
+            {
+                AllBoardSubscribers = new HashSet<Telegram.Bot.Types.ChatId>();
+            }
+            */
+
+            /*
+            foreach (ContentType ct in KnownContentTypes)
+            {
+                if (!SubScriberMap.ContainsKey(ct))
+                {
+                    SubScriberMap[ct] = new HashSet<Telegram.Bot.Types.ChatId>();
+                }
+            }
+            */
+
+            if (Subscribers == null)
+            {
+                Subscribers = new Dictionary<long, UserGroup>();
+            }
+
+            List<long> defaultGroups = new List<long>() { GROUP_ID_ADMINISTRATOR, GROUP_ID_UNSPECIFIED };
+            foreach (long grpId in defaultGroups)
+            {
+                if (!Subscribers.ContainsKey(grpId))
+                {
+                    Subscribers[grpId] = new UserGroup();
+                }
+            }
+        }
+
         public static Configuration FromJson(string json)
         {
             Configuration conf = JsonConvert.DeserializeObject<Configuration>(json);
+            conf.CheckNullFields();
             conf.KidsNoteId = EncryptorAES.DecryptAes(conf.KidsNoteId, EncryptorAES.DefaultAesEncKey);
             conf.KidsNotePassword = EncryptorAES.DecryptAes(conf.KidsNotePassword, EncryptorAES.DefaultAesEncKey);
-            if (conf.AllBoardSubscribers == null)
-            {
-                conf.AllBoardSubscribers = new HashSet<Telegram.Bot.Types.ChatId>();
-            }
-
-            foreach (ContentType ct in KnownContentTypes)
-            {
-                if (!conf.SubScriberMap.ContainsKey(ct))
-                {
-                    conf.SubScriberMap[ct] = new HashSet<Telegram.Bot.Types.ChatId>();
-                }
-            }
 
             return conf;
         }
@@ -136,9 +207,11 @@ namespace LibKidsNoteForEveryone
 
         public void AddSubscriber(long id, HashSet<ContentType> exclusions)
         {
+            /*
             if (exclusions.Count == 0)
             {
-                AllBoardSubscribers.Add(id);
+                //AllBoardSubscribers.Add(id);
+                SubscriberGroups[ContentType.ALL].Add
             }
             else
             {
@@ -150,6 +223,7 @@ namespace LibKidsNoteForEveryone
                     }
                 }
             }
+            */
         }
 
         public HashSet<long> GetSubscribers(ContentType contentType)
@@ -161,6 +235,7 @@ namespace LibKidsNoteForEveryone
                 subscribers.Add(ManagerChatId.Identifier);
             }
 
+            /*
             foreach (var each in AllBoardSubscribers)
             {
                 subscribers.Add(each.Identifier);
@@ -173,6 +248,9 @@ namespace LibKidsNoteForEveryone
                     subscribers.Add(each.Identifier);
                 }
             }
+            */
+
+
 
             return subscribers;
         }

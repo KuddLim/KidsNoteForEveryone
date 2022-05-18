@@ -17,6 +17,7 @@ namespace LibKidsNoteForEveryone
         MENUTABLE,          // 식단표
         MEDS_REQUEST,       // 투약의뢰서
         RETURN_HOME_NOTICE, // 귀가동의서
+        ALL,                // 모든 타입
     };
 
     public enum AttachmentType

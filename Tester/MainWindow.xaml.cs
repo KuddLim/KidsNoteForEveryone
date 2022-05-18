@@ -58,7 +58,8 @@ namespace Tester
             textTelegramBotToken.Text = Conf.TelegramBotToken;
 
             List<long> converted = new List<long>();
-            foreach (var each in Conf.AllBoardSubscribers)
+            if (Conf.Subscribers.ContainsKey(Configuration.GROUP_ID_ADMINISTRATOR))
+            foreach (var each in Conf.Subscribers[Configuration.GROUP_ID_ADMINISTRATOR].Members)
             {
                 converted.Add(each.Identifier);
             }
@@ -269,13 +270,13 @@ namespace Tester
             Conf.TelegramBotToken = textTelegramBotToken.Text;
 
             string[] tokens = textTelegramUsers.Text.Split(',');
-            Conf.AllBoardSubscribers.Clear();
+            Conf.Subscribers[Configuration.GROUP_ID_ADMINISTRATOR].Members.Clear();
             foreach (var each in tokens)
             {
                 long id = 0;
                 if (long.TryParse(each.Trim(), out id))
                 {
-                    Conf.AllBoardSubscribers.Add(id);
+                    Conf.Subscribers[Configuration.GROUP_ID_ADMINISTRATOR].Members.Add(id);
                 }
             }
 

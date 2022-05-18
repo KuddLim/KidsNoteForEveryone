@@ -34,6 +34,7 @@ namespace KidsNoteForEveryoneSA
         private ContentType PreviousContentType;
         private HashSet<KeyValuePair<ContentType, ulong>> SelectedContents;
         Dictionary<ContentType, LinkedList<KidsNoteContent>> LatestContents;
+        private static long TEMPORARY_GROUP_ID = 1000;
 
         public MainWindow()
         {
@@ -147,9 +148,18 @@ namespace KidsNoteForEveryoneSA
             textTelegramAdminChatId.Text = TheConfiguration.ManagerChatId.Identifier.ToString();
 
             LinkedList<string> moderators = new LinkedList<string>();
-            foreach (var each in TheConfiguration.AllBoardSubscribers)
+            /*
+             * foreach (var each in TheConfiguration.AllBoardSubscribers)
             {
                 moderators.AddLast(each.Identifier.ToString());
+            }
+            */
+            foreach (var each in TheConfiguration.Subscribers)
+            {
+                if (each.Value.SubScribeAllBoards)
+                {
+                    moderators.Concat(each.Value.Members.Select(m => m.Identifier.ToString()));
+                }
             }
             textTelegramModeratorChatIds.Text = String.Join(",", moderators);
 
@@ -181,10 +191,16 @@ namespace KidsNoteForEveryoneSA
                 return;
             }
 
-            TheConfiguration.SubScriberMap[PreviousContentType] = GetUseChatIds();
+            if (!TheConfiguration.Subscribers.ContainsKey(TEMPORARY_GROUP_ID))
+            {
+                TheConfiguration.Subscribers[TEMPORARY_GROUP_ID] = new UserGroup();
+            }
+
+            var userGroup = TheConfiguration.Subscribers[TEMPORARY_GROUP_ID];
+            userGroup.Members = GetUseChatIds();
             PreviousContentType = contentType;
 
-            textTelegramUserChatIds.Text = String.Join(",", TheConfiguration.SubScriberMap[contentType]);
+            textTelegramUserChatIds.Text = String.Join(",", userGroup.Members);
         }
 
         private HashSet<ChatId> GetUseChatIds()
@@ -207,6 +223,7 @@ namespace KidsNoteForEveryoneSA
         {
             LinkedList<string> idList = new LinkedList<string>();
             ContentType currentType = (ContentType)comboBoardTypes.SelectedItem;
+
             if (TheConfiguration.SubScriberMap.ContainsKey(currentType))
             {
                 foreach (var each in TheConfiguration.SubScriberMap[currentType])

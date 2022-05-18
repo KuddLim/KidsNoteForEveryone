@@ -98,6 +98,7 @@ namespace LibKidsNoteForEveryone.Bot
                             }
                         }
 
+                        // TODO: 그냥 수동으로 추가하자.
                         if (AddSubscriber(param, exclusions))
                         {
                             handledAsAsmin = true;
