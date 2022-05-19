@@ -105,8 +105,8 @@ namespace LibKidsNoteForEveryone
                     return String.Format("{0}/api/v1_2/centers/{1}/medications?page_size=12&cls={2}&child={3}{4}",
                                          Constants.KIDSNOTE_URL, centerId, classId, childId, page);
                 case ContentType.RETURN_HOME_NOTICE:
-                    // 귀가동의서가 사라졌다.
-                    //return Constants.KIDSNOTE_URL + "/return-home-notices/";
+                // 귀가동의서가 사라졌다.
+                //return Constants.KIDSNOTE_URL + "/return-home-notices/";
                 default:
                     break;
             }
@@ -210,6 +210,7 @@ namespace LibKidsNoteForEveryone
                 return result;
             }
 
+            LinkedList<KidsNoteContent> filtered = new LinkedList<KidsNoteContent>();
             foreach (var enr in ActiveChildEnrollments)
             {
                 string url = ContentTypeUrl(type, ActiveChildId, enr.CenterId, enr.ClassId, pageToken);
@@ -263,16 +264,12 @@ namespace LibKidsNoteForEveryone
                         return result;
                     }
 
-                    var node = result.ContentList.First;
-                    while (node != null)
+                    foreach (var content in result.ContentList)
                     {
-                        var next = node.Next;
-                        if (node.Value.Id <= lastContentId)
+                        if (content.Id > lastContentId)
                         {
-                            result.ContentList.Remove(node);
+                            filtered.AddLast(content);
                         }
-
-                        node = next;
                     }
 
                     foreach (var each in result.ContentList)
@@ -323,6 +320,7 @@ namespace LibKidsNoteForEveryone
                 }
             }
 
+            result.ContentList = filtered;
             return result;
         }
 
