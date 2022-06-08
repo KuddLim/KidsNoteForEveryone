@@ -314,6 +314,8 @@ namespace LibKidsNoteForEveryone
                 {
                     OnGetNewContents(newContents);
                 }
+
+                newContents.Clear();
             }
         }
 
@@ -326,6 +328,7 @@ namespace LibKidsNoteForEveryone
                 TheUploader.SetBaseFolderId = this.SetBaseFolderId;
                 TheUploader.UploadProgress = this.UploadProgress;
                 TheUploader.DownloadFunction = this.DownloadFunction;
+                TheUploader.UploadFailed = this.OnUploadFailed;
                 TheUploader.Startup();
             }
 
@@ -360,6 +363,11 @@ namespace LibKidsNoteForEveryone
         {
             KidsNoteClientResponse resp = TheClient.DownloadAttachment(url, true);
             return resp.Binary;
+        }
+
+        private void OnUploadFailed(KidsNoteContent content)
+        {
+            System.Diagnostics.Trace.WriteLine("Upload Failed!!!");
         }
 
         private KidsNoteClient MakeNewClient()

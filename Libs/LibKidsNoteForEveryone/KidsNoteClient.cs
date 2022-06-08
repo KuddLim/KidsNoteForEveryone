@@ -34,6 +34,7 @@ namespace LibKidsNoteForEveryone
 
         private KidsNoteClientParser Parser;
         private HttpClient WebClient;
+        private HttpClient AttachDownloadClient;
         private HttpClientHandler WebClientHandler;
         private CookieContainer Cookies;
         private bool LoggedIn;
@@ -58,6 +59,7 @@ namespace LibKidsNoteForEveryone
             WebClientHandler.CookieContainer = Cookies;
 
             WebClient = new HttpClient(WebClientHandler);
+            AttachDownloadClient = new HttpClient();
             LoggedIn = false;
 
             ActiveChildId = -1;
@@ -156,7 +158,7 @@ namespace LibKidsNoteForEveryone
 
         public KidsNoteClientResponse DownloadAttachment(string url, bool asBinary = false)
         {
-            return DownloadDataImpl(new HttpClient(), url, asBinary);
+            return DownloadDataImpl(AttachDownloadClient, url, asBinary);
         }
 
         public KidsNoteContentDownloadResult DownloadContent(ContentType type, UInt64 lastContentId, string pageToken, bool onTheFly = true)

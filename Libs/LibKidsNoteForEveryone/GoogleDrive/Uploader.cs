@@ -20,8 +20,10 @@ namespace LibKidsNoteForEveryone.GoogleDrive
         public delegate void SetBaseFolderIdDelegate(string id);
         public delegate void UploadProgressDelegate(string progress);
         public delegate Stream DownloadUrlDelegate(string url);
+        public delegate void UploadFailedDelegate(KidsNoteContent content);
 
         private static string[] Scopes = { DriveService.Scope.DriveReadonly };
+        private static int MAX_TRIAL = 5;
         private UserCredential Credential;
         private DriveService Service;
         private string CredentialPath;
@@ -32,6 +34,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
         public SetBaseFolderIdDelegate SetBaseFolderId;
         public UploadProgressDelegate UploadProgress;
         public DownloadUrlDelegate DownloadFunction;
+        public UploadFailedDelegate UploadFailed;
 
         public Uploader(string credentialPath, string tokenPath, string childName)
         {
@@ -278,9 +281,32 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             UploadProgress(string.Format("Uploding [{0}] {1}", content.Type, content.Id));
 
             string name = encrypt ? "본문.txt.chacha" : "본문.txt";
+
+
             // 이미 암호화 해 두었다.
-            string bodyId = UploadFile(ms, containingFolderId, name, name, Constants.GOOGLE_DRIVE_MIMETYPE_TEXT);
-            idList.AddLast(bodyId);
+            string bodyId = null;
+
+            for (int trial = 0; trial < MAX_TRIAL; ++trial)
+            {
+                bodyId = UploadFile(ms, containingFolderId, name, name, Constants.GOOGLE_DRIVE_MIMETYPE_TEXT);
+
+                if (bodyId != null)
+                {
+                    break;
+                }
+            }
+
+            if (bodyId == null)
+            {
+                // TODO: retry
+                UploadFailed(content);
+            }
+            else
+            {
+                idList.AddLast(bodyId);
+            }
+
+            ms.Close();
 
             int i = 0;
             foreach (var each in content.Attachments)
@@ -291,7 +317,6 @@ namespace LibKidsNoteForEveryone.GoogleDrive
                     each.Data = DownloadFunction(each.DownloadUrl);
                 }
 
-                ++i;
                 int pos = each.DownloadUrl.LastIndexOf('.');
                 string ext = "";
                 if (pos > 0)
@@ -304,12 +329,28 @@ namespace LibKidsNoteForEveryone.GoogleDrive
 
                 System.Diagnostics.Trace.WriteLine(String.Format("[{0}] Uploading.. {1}", i, each.DownloadUrl));
 
-                string id = isVideo ? UploadVideoAttachment(each, i, containingFolderId, ext, encrypt)
-                                    : UploadPhotoAttachment(each, i, containingFolderId, ext, encrypt);
+                string id = null;
+                for (int trial = 0; trial < MAX_TRIAL; ++trial)
+                {
+                    id = isVideo ? UploadVideoAttachment(each, i, containingFolderId, ext, encrypt)
+                                 : UploadPhotoAttachment(each, i, containingFolderId, ext, encrypt);
+                    if (id != null)
+                    {
+                        break;
+                    }
+                }
                 if (id != null && id.Length > 0)
                 {
-                    idList.AddLast(id);
+                    //idList.AddLast(id);
                 }
+                else
+                {
+                    UploadFailed(content);
+                }
+
+                each.Data.Close();
+
+                ++i;
             }
 
             return idList;
@@ -458,7 +499,7 @@ namespace LibKidsNoteForEveryone.GoogleDrive
             Google.Apis.Upload.IUploadProgress progress = createRequest.Upload();
             Google.Apis.Drive.v3.Data.File response = createRequest.ResponseBody;
 
-            return response.Id;
+            return response != null ? response.Id : null;
         }
 
         // https://stackoverflow.com/questions/45663027/resuming-interrupted-upload-using-google-drive-v3-c-sharp-sdk
