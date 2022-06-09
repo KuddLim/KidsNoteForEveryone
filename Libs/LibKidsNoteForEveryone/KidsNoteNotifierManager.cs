@@ -319,7 +319,39 @@ namespace LibKidsNoteForEveryone
             }
         }
 
-        public bool BackupToGoogleDrive(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents)
+        public void DoScheduledHistroyBackup(bool uploadAnyway = false)
+        {
+            // 시간을 그냥 고정해두었다.
+            DateTime now = DateTime.Now;
+            if (now.Hour == 3 || uploadAnyway)
+            {
+                FetchHistory history = new FetchHistory();
+                history = GetHistory(true);
+
+                KidsNoteContent content = new KidsNoteContent(ContentType.HISTORY_BACKUP);
+                content.Writer = "[SYSTEM]";
+                content.Content = History.ToJson();
+                content.ChildName = "N/A";
+                content.Date = now;
+                try
+                {
+                    content.Id = ulong.Parse(now.ToString("yyyyMMdd"));
+                }
+                catch (Exception)
+                {
+                }
+
+                LinkedList<KidsNoteContent> contents = new LinkedList<KidsNoteContent>();
+                contents.AddLast(content);
+
+                Dictionary<ContentType, LinkedList<KidsNoteContent>> toBackup = new Dictionary<ContentType, LinkedList<KidsNoteContent>>();
+                toBackup[ContentType.HISTORY_BACKUP] = contents;
+
+                BackupToGoogleDrive(toBackup, true);
+            }
+        }
+
+        public bool BackupToGoogleDrive(Dictionary<ContentType, LinkedList<KidsNoteContent>> newContents, bool forcePlain = false)
         {
             if (TheUploader == null)
             {
@@ -332,7 +364,7 @@ namespace LibKidsNoteForEveryone
                 TheUploader.Startup();
             }
 
-            return TheUploader.Backup(newContents, TheConfiguration.EncryptUpload);
+            return TheUploader.Backup(newContents, forcePlain ? false : TheConfiguration.EncryptUpload);
         }
 
         public bool EncryptChaCha(string sourceFile, string destFile, string key)
@@ -545,12 +577,26 @@ namespace LibKidsNoteForEveryone
             KidsNoteScheduleParameters param = (KidsNoteScheduleParameters)dataMap["param"];
             KidsNoteNotifierManager owner = (KidsNoteNotifierManager)dataMap["owner"];
 
-            Task task = Task.Run(() =>
+            if (param.Job == KidsNoteScheduleParameters.JobType.JOB_CHECK_NEW_CONTENTS)
             {
-                owner.DoScheduledCheck(true);
-            });
+                Task task = Task.Run(() =>
+                {
+                    owner.DoScheduledCheck(true);
+                });
 
-            return task;
+                return task;
+            }
+            else if (param.Job == KidsNoteScheduleParameters.JobType.JOB_BACKUP_HISTORY)
+            {
+                Task task = Task.Run(() =>
+                {
+                    owner.DoScheduledHistroyBackup();
+                });
+
+                return task;
+            }
+
+            return null;
         }
     }
 

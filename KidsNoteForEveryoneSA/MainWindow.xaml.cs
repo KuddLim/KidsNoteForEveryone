@@ -86,6 +86,7 @@ namespace KidsNoteForEveryoneSA
 
             buttonStop.IsEnabled = false;
             buttonFetchNow.IsEnabled = false;
+            buttonBackupHistoryNow.IsEnabled = false;
 
             AddLog("UI initialized");
         }
@@ -301,12 +302,19 @@ namespace KidsNoteForEveryoneSA
             buttonRun.IsEnabled = false;
             buttonStop.IsEnabled = true;
             buttonFetchNow.IsEnabled = true;
+            buttonBackupHistoryNow.IsEnabled = true;
             (tabControl.Items[1] as TabItem).IsEnabled = false;
 
-            KidsNoteScheduleParameters param = new KidsNoteScheduleParameters();
-            param.Days = KidsNoteScheduleParameters.DaysType.WHOLE_WEEK;
-            param.Job = KidsNoteScheduleParameters.JobType.JOB_CHECK_NEW_CONTENTS;
-            TheManager.AddJob(param);
+            KidsNoteScheduleParameters param1 = new KidsNoteScheduleParameters();
+            param1.Days = KidsNoteScheduleParameters.DaysType.WHOLE_WEEK;
+            param1.Job = KidsNoteScheduleParameters.JobType.JOB_CHECK_NEW_CONTENTS;
+
+            KidsNoteScheduleParameters param2 = new KidsNoteScheduleParameters();
+            param2.Days = KidsNoteScheduleParameters.DaysType.WHOLE_WEEK;
+            param2.Job = KidsNoteScheduleParameters.JobType.JOB_BACKUP_HISTORY;
+
+            TheManager.AddJob(param1);
+            TheManager.AddJob(param2);
 
             TheManager.Startup();
         }
@@ -503,6 +511,11 @@ namespace KidsNoteForEveryoneSA
             }
 
             buttonUploadSelected.IsEnabled = SelectedContents.Count != 0;
+        }
+
+        private void buttonBackupHistoryNow_Click(object sender, RoutedEventArgs e)
+        {
+            TheManager.DoScheduledHistroyBackup(true);
         }
     }
 }
