@@ -26,6 +26,7 @@ namespace LibKidsNoteForEveryone
         private Bot.NotifierBot TheBot;
         private DateTime LastErrorTime;
         private static bool DlOnTheFly = true;
+        private static string VERSION_STRING = "2022.06.17.001";
 
         public KidsNoteNotifierManager(HashSet<ContentType> monitoringTypes)
         {
@@ -58,7 +59,7 @@ namespace LibKidsNoteForEveryone
             TheBot.Startup();
             if (TheConfiguration.ManagerChatId.Identifier != 0)
             {
-                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 시작되었습니다");
+                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "서비스가 시작되었습니다. Ver : " + VERSION_STRING);
             }
         }
 
