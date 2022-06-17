@@ -26,7 +26,7 @@ namespace LibKidsNoteForEveryone
         private Bot.NotifierBot TheBot;
         private DateTime LastErrorTime;
         private static bool DlOnTheFly = true;
-        private static string VERSION_STRING = "2022.06.17.001";
+        private static string VERSION_STRING = "2022.06.17.002";
 
         public KidsNoteNotifierManager(HashSet<ContentType> monitoringTypes)
         {
@@ -326,6 +326,8 @@ namespace LibKidsNoteForEveryone
             DateTime now = DateTime.Now;
             if (now.Hour == 3 || uploadAnyway)
             {
+                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "History 백업을 시작합니다 : " + now.ToString());
+
                 FetchHistory history = new FetchHistory();
                 history = GetHistory(true);
 
@@ -349,6 +351,10 @@ namespace LibKidsNoteForEveryone
                 toBackup[ContentType.HISTORY_BACKUP] = contents;
 
                 BackupToGoogleDrive(toBackup, true);
+            }
+            else
+            {
+                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "History 백업시간이 아닙니다 : " + now.ToString());
             }
         }
 
