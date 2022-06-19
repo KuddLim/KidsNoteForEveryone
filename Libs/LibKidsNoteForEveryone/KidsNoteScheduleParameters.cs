@@ -18,12 +18,12 @@ namespace LibKidsNoteForEveryone
         public enum JobType
         {
             JOB_CHECK_NEW_CONTENTS = 0,
-            JOB_BACKUP_HISTORY = 1,
+            JOB_BACKUP_CONFIGURATION = 1,
         }
 
         public override string ToString()
         {
-            if (Job == JobType.JOB_CHECK_NEW_CONTENTS || Job == JobType.JOB_BACKUP_HISTORY)
+            if (Job == JobType.JOB_CHECK_NEW_CONTENTS || Job == JobType.JOB_BACKUP_CONFIGURATION)
             {
                 if (Days == DaysType.MON_FRI)
                 {

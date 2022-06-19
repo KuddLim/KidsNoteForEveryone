@@ -18,6 +18,7 @@ namespace LibKidsNoteForEveryone
         MEDS_REQUEST,       // 투약의뢰서
         RETURN_HOME_NOTICE, // 귀가동의서
         HISTORY_BACKUP,     // 통지내역 기록파일
+        SETUP_BACKUP,       // 설정백업파일
     };
 
     public enum AttachmentType

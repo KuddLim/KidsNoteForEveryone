@@ -26,7 +26,7 @@ namespace LibKidsNoteForEveryone
         private Bot.NotifierBot TheBot;
         private DateTime LastErrorTime;
         private static bool DlOnTheFly = true;
-        private static string VERSION_STRING = "2022.06.17.002";
+        private static string VERSION_STRING = "2022.06.19.001";
 
         public KidsNoteNotifierManager(HashSet<ContentType> monitoringTypes)
         {
@@ -162,7 +162,7 @@ namespace LibKidsNoteForEveryone
 #if DEBUG
                 cronFormat = String.Format("{0} {1} {2} * * ?", scheduled.Second, scheduled.Minute, scheduled.Hour);
 #else
-                cronFormat = "0 0 * * * ?";
+                cronFormat = "0 0 0/1 * * ?";
 #endif
             }
 
@@ -331,30 +331,45 @@ namespace LibKidsNoteForEveryone
                 FetchHistory history = new FetchHistory();
                 history = GetHistory(true);
 
-                KidsNoteContent content = new KidsNoteContent(ContentType.HISTORY_BACKUP);
-                content.Writer = "[SYSTEM]";
-                content.Content = History.ToJson();
-                content.ChildName = "N/A";
-                content.Date = now;
+                KidsNoteContent historyContent = new KidsNoteContent(ContentType.HISTORY_BACKUP);
+                historyContent.Writer = "[SYSTEM]";
+                historyContent.Content = History.ToJson();
+                historyContent.ChildName = "N/A";
+                historyContent.Date = now;
+
+                KidsNoteContent setupContent = new KidsNoteContent(ContentType.SETUP_BACKUP);
+                setupContent.Writer = "[SYSTEM]";
+                setupContent.Content = TheConfiguration.ToJson();
+                setupContent.ChildName = "N/A";
+                setupContent.Date = now;
+
+                ulong id = 0;
                 try
                 {
-                    content.Id = ulong.Parse(now.ToString("yyyyMMdd"));
+                    id = ulong.Parse(now.ToString("yyyyMMdd"));
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, e.ToString());
                 }
 
-                LinkedList<KidsNoteContent> contents = new LinkedList<KidsNoteContent>();
-                contents.AddLast(content);
+                historyContent.Id = id;
+                setupContent.Id = id;
+
+                LinkedList<KidsNoteContent> historyContents = new LinkedList<KidsNoteContent>();
+                historyContents.AddLast(historyContent);
+                LinkedList<KidsNoteContent> setupContents = new LinkedList<KidsNoteContent>();
+                setupContents.AddLast(setupContent);
 
                 Dictionary<ContentType, LinkedList<KidsNoteContent>> toBackup = new Dictionary<ContentType, LinkedList<KidsNoteContent>>();
-                toBackup[ContentType.HISTORY_BACKUP] = contents;
+                toBackup[ContentType.HISTORY_BACKUP] = historyContents;
+                toBackup[ContentType.SETUP_BACKUP] = setupContents;
 
-                BackupToGoogleDrive(toBackup, true);
+                BackupToGoogleDrive(toBackup, false);
             }
             else
             {
-                TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "History 백업시간이 아닙니다 : " + now.ToString());
+                //TheBot.SendAdminMessage(TheConfiguration.ManagerChatId, "History 백업시간이 아닙니다 : " + now.ToString());
             }
         }
 
@@ -593,7 +608,7 @@ namespace LibKidsNoteForEveryone
 
                 return task;
             }
-            else if (param.Job == KidsNoteScheduleParameters.JobType.JOB_BACKUP_HISTORY)
+            else if (param.Job == KidsNoteScheduleParameters.JobType.JOB_BACKUP_CONFIGURATION)
             {
                 Task task = Task.Run(() =>
                 {

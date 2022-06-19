@@ -123,12 +123,12 @@ namespace KidsNoteForEveryoneService
                 contentJobParam.Days = KidsNoteScheduleParameters.DaysType.MON_FRI;
                 contentJobParam.Job = KidsNoteScheduleParameters.JobType.JOB_CHECK_NEW_CONTENTS;
 
-                KidsNoteScheduleParameters historyBackupJobParam = new KidsNoteScheduleParameters();
-                historyBackupJobParam.Days = KidsNoteScheduleParameters.DaysType.MON_FRI;
-                historyBackupJobParam.Job = KidsNoteScheduleParameters.JobType.JOB_BACKUP_HISTORY;
+                KidsNoteScheduleParameters configBackupJobParam = new KidsNoteScheduleParameters();
+                configBackupJobParam.Days = KidsNoteScheduleParameters.DaysType.WHOLE_WEEK;
+                configBackupJobParam.Job = KidsNoteScheduleParameters.JobType.JOB_BACKUP_CONFIGURATION;
 
                 Manager.AddJob(contentJobParam);
-                Manager.AddJob(historyBackupJobParam);
+                Manager.AddJob(configBackupJobParam);
 
                 Manager.Startup();
 
