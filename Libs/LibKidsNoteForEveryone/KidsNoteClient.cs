@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,6 +9,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace LibKidsNoteForEveryone
 {
@@ -22,6 +24,29 @@ namespace LibKidsNoteForEveryone
             Response = response;
             Content = html;
             Binary = binary;
+        }
+    }
+
+    internal class LoginParam
+    {
+        [JsonProperty("username")]
+        public string UserName { get; set; }
+        [JsonProperty("password")]
+        public string Password { get; set; }
+        [JsonProperty("remember_me")]
+        public bool RememberMe { get; set; }
+
+        public LoginParam()
+        {
+            UserName = "";
+            Password = "";
+            RememberMe = false;
+        }
+
+        public string ToJson()
+        {
+            string json = JsonConvert.SerializeObject(this, Formatting.None);
+            return json;
         }
     }
 
@@ -187,8 +212,7 @@ namespace LibKidsNoteForEveryone
             if (!LoggedIn && response != null && IsLoginPage(response.Content))
             {
                 KidsNoteClientResponse loginResult = Login(response.Content);
-                LoggedIn = (loginResult.Response.StatusCode == HttpStatusCode.Found ||
-                            loginResult.Response.StatusCode == HttpStatusCode.OK);
+                LoggedIn = loginResult.Response.StatusCode == HttpStatusCode.OK;
             }
 
             if (!LoggedIn)
@@ -388,7 +412,8 @@ namespace LibKidsNoteForEveryone
 
         private bool IsLoginPage(string html)
         {
-            return html.IndexOf("<form action=\"/login/\"") > 0;
+            //return html.IndexOf("<form action=\"/login/\"") > 0;
+            return Parser.IsLoginPage(html);
         }
 
         private KidsNoteClientResponse Login(string formHtml)
@@ -397,16 +422,29 @@ namespace LibKidsNoteForEveryone
 
             Configuration conf = GetCurrentConfiguration();
 
-            FormUrlEncodedContent content = new FormUrlEncodedContent(new[]
-            {
-                new KeyValuePair<string, string>("csrfmiddlewaretoken", csrfMiddlewareToken),
-                new KeyValuePair<string, string>("username", conf.KidsNoteId),
-                new KeyValuePair<string, string>("password", conf.KidsNotePassword)
-            });
+            LoginParam param = new LoginParam();
+            param.UserName = conf.KidsNoteId;
+            param.Password = conf.KidsNotePassword;
 
-            return PostData(Constants.KIDSNOTE_LOGIN_POST_URL, content);
+            //string content = HttpUtility.UrlEncode(param.ToJson());
+
+            return PostRaw(Constants.KIDSNOTE_LOGIN_POST_URL, param.ToJson());
         }
 
+        private KidsNoteClientResponse PostRaw(string url, string raw)
+        {
+            StringContent content = new StringContent(raw, Encoding.UTF8, "application/json");
+            Task<HttpResponseMessage> postTask = WebClient.PostAsync(url, content);
+            postTask.Wait();
+
+            HttpResponseMessage response = postTask.Result;
+            string html = response.Content.ReadAsStringAsync().Result;
+
+            KidsNoteClientResponse info = new KidsNoteClientResponse(response, html);
+            return info;
+        }
+
+        /*
         private KidsNoteClientResponse PostData(string url, FormUrlEncodedContent form)
         {
             Task<HttpResponseMessage> postTask = WebClient.PostAsync(url, form);
@@ -418,5 +456,6 @@ namespace LibKidsNoteForEveryone
             KidsNoteClientResponse info = new KidsNoteClientResponse(response, html);
             return info;
         }
+        */
     }
 }

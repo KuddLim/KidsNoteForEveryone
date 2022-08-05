@@ -12,6 +12,7 @@ namespace LibKidsNoteForEveryone
         public enum DaysType
         {
             MON_FRI = 0,
+            MON_SAT,
             WHOLE_WEEK,
         }
 

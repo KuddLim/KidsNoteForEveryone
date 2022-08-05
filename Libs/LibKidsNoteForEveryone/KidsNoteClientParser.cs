@@ -266,6 +266,116 @@ namespace LibKidsNoteForEveryone
             return null;
         }
 
+        protected HtmlNode FindNodeContainingAttr(HtmlNode current, string tagName, HashSet<string> attrNames)
+        {
+            if (current == null || current.ChildNodes == null)
+            {
+                return null;
+            }
+
+            HtmlNode found = null;
+            foreach (var child in current.ChildNodes)
+            {
+                if (child.Name == tagName)
+                {
+                    if (attrNames == null)
+                    {
+                        return child;
+                    }
+
+                    HashSet<string> actualAttrs = new HashSet<string>();
+                    foreach (var attr in child.Attributes)
+                    {
+                        actualAttrs.Add(attr.Name);
+                    }
+
+                    bool hasAll = true;
+                    foreach (var a in attrNames)
+                    {
+                        if (!actualAttrs.Contains(a))
+                        {
+                            hasAll = false;
+                            break;
+                        }
+                    }
+
+                    if (hasAll)
+                    {
+                        found = child;
+                    }
+                }
+            }
+
+            if (found != null)
+            {
+                return found;
+            }
+            else
+            {
+                foreach (var child in current.ChildNodes)
+                {
+                    found = FindNodeContainingAttr(child, tagName, attrNames);
+                    if (found != null)
+                    {
+                        return found;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        protected HtmlNode FindNodeRecursivelyExactAttrs(HtmlNode current, string tagName, Dictionary<string, string> attributes, int level = 1)
+        {
+            HtmlNode found = FindNode(current, tagName, attributes, false);
+            if (found != null)
+            {
+                return found;
+            }
+            else
+            {
+                HtmlNode foundFormChild = null;
+
+                for (int i = 0; i < current.ChildNodes.Count; ++i)
+                {
+                    HtmlNode child = current.ChildNodes[i];
+
+                    foundFormChild = FindNodeRecursivelyExactAttrs(child, tagName, attributes, level + 1);
+                    if (foundFormChild != null)
+                    {
+                        return foundFormChild;
+                    }
+                }
+
+                return foundFormChild;
+            }
+        }
+
+        public bool IsLoginPage(string html)
+        {
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            var root = doc.DocumentNode;
+
+            HashSet<string> attrs = new HashSet<string>();
+            attrs.Add("class");
+            HtmlNode found = FindNodeContainingAttr(root, "form", attrs);
+
+            if (found != null)
+            {
+                Dictionary<string, string> attrDict = new Dictionary<string, string>();
+                attrDict["type"] = "submit";
+                HtmlNode condition2 = FindNodeRecursivelyExactAttrs(found, "button", attrDict);
+                if (condition2 != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private string ReplaceHtmlEscapes(string text)
         {
             string escaped = text.Replace("<br>", "\n").Replace("<br />", "\n").Replace("&quot;", "\"")
